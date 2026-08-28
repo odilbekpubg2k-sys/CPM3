@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CPM Uzbekistan HD 3D - 1v1 Online</title>
+    <title>CPM Uzbekistan HD 3D - Ultimate Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none; }
         body, html { width: 100vw; height: 100vh; overflow: hidden; background: #05070a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
@@ -15,8 +15,8 @@
             padding: 20px; backdrop-filter: blur(12px); display: none; z-index: 10;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
-        #hud { top: 15px; left: 15px; display: block; width: 250px; }
-        #menu, #garage-menu, #lobby-menu { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; text-align: center; }
+        #hud { top: 15px; left: 15px; display: block; width: 260px; }
+        #menu, #garage-menu, #lobby-menu, #tuning-menu { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 420px; text-align: center; }
         #menu { display: block; }
 
         h2, h3 { color: #00e5ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
@@ -39,8 +39,8 @@
         .btn-nitro { background: linear-gradient(135deg, #ff9f43, #ee5253); }
         .btn-danger { background: linear-gradient(135deg, #ff4757, #c9302c); }
         .btn-success { background: linear-gradient(135deg, #2ed573, #1e90ff); }
+        .btn-purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 
-        /* TOUCH CONTROLS */
         #touch-controls { 
             position: absolute; bottom: 20px; left: 0; width: 100vw; 
             display: flex; justify-content: space-between; padding: 0 25px; 
@@ -73,11 +73,10 @@
     <button id="camera-btn" onclick="switchCamera()">🎥 KAMERA</button>
     <button id="fullscreen-btn" onclick="toggleFullScreen()">🖥 TO'LIQ EKRAN</button>
     
-    <div id="drift-score">DRIFT: +<span id="drift-val">0</span></div>
+    <div id="drift-score">DRIFT: +<span id="drift-val">0</span> PTS</div>
 
     <div id="canvas-container"></div>
 
-    <!-- HUD -->
     <div id="hud" class="ui-panel">
         <h3>🚗 CPM UZBEKISTAN</h3>
         <p>Tezlik: <b id="speed" style="font-size: 22px; color: #00e5ff;">0</b> km/h</p>
@@ -86,7 +85,6 @@
         <button onclick="openPanel('menu')" style="margin-top: 8px; padding: 6px;">Menyu (ESC)</button>
     </div>
 
-    <!-- MAIN MENU -->
     <div id="menu" class="ui-panel">
         <h2>CPM 3D UZBEKISTAN</h2>
         <button onclick="startFreeDrive()" class="btn-success">🎮 Shaharga Kirish (Free Drive)</button>
@@ -94,7 +92,6 @@
         <button onclick="openPanel('garage-menu')">🚘 Garaj va Do'kon</button>
     </div>
 
-    <!-- 1v1 LOBBY MENU -->
     <div id="lobby-menu" class="ui-panel">
         <h2>1v1 ONLINE LOBBY</h2>
         <button onclick="createLobby()" class="btn-nitro">➕ Poyga Yaratish</button>
@@ -104,18 +101,28 @@
         <button onclick="openPanel('menu')" class="btn-danger">Orqaga</button>
     </div>
 
-    <!-- GARAJ -->
     <div id="garage-menu" class="ui-panel">
         <h2>AVTOMOBIL DO'KONI</h2>
         <p id="car-name" style="font-size: 16px; font-weight: bold; color: #00e5ff;">Cobalt Classic</p>
         <p id="car-price" style="color: #ffd700;">Sotib olingan</p>
         <button onclick="nextCar(1)">▶ Keyingi Mashina</button>
         <button onclick="buyCar()" id="buy-btn" class="btn-nitro">Sotib Olish</button>
-        <button onclick="changeColor()" style="background: #9b59b6;">🎨 Rangni O'zgartirish</button>
+        <button onclick="openPanel('tuning-menu')" class="btn-purple">🔧 Tyuning va Ranglar</button>
         <button onclick="openPanel('menu')" class="btn-danger">Orqaga</button>
     </div>
 
-    <!-- TOUCH CONTROLS -->
+    <div id="tuning-menu" class="ui-panel">
+        <h2>TYUNING TIZIMI</h2>
+        <button onclick="changeCarColor()" style="background: #e74c3c;">🎨 Korpus Rangini O'zgartirish</button>
+        <button onclick="changeWheelColor()" style="background: #3498db;">⚙️ Diska Rangini O'zgartirish</button>
+        <hr style="border-color: rgba(0,229,255,0.2); margin: 10px 0;">
+        <p>Dvigatel (Top Speed): <b id="upg-speed-lvl">Lvl 1</b></p>
+        <button onclick="upgradeStat('speed')" class="btn-success">Speed Upgrade (200$)</button>
+        <p>Tormoz Tizimi: <b id="upg-brake-lvl">Lvl 1</b></p>
+        <button onclick="upgradeStat('brake')" class="btn-success">Brake Upgrade (150$)</button>
+        <button onclick="openPanel('garage-menu')" class="btn-danger" style="margin-top: 10px;">Orqaga</button>
+    </div>
+
     <div id="touch-controls">
         <div class="touch-group">
             <div class="touch-btn" id="btn-left">◀</div>
@@ -134,11 +141,36 @@
             else if (document.exitFullscreen) document.exitFullscreen();
         }
 
-        // --- SCENE & GRAPHICS ---
+        // --- AUDIO ENGINE (Synth Audio API) ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let engineOsc = null;
+        let engineGain = null;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new AudioCtx();
+            engineOsc = audioCtx.createOscillator();
+            engineGain = audioCtx.createGain();
+            engineOsc.type = 'sawtooth';
+            engineOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
+            engineGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            engineOsc.connect(engineGain);
+            engineGain.connect(audioCtx.destination);
+            engineOsc.start();
+        }
+
+        function updateEngineAudio(currentSpeed) {
+            if (!audioCtx) return;
+            let pitch = 60 + Math.abs(currentSpeed) * 120;
+            engineOsc.frequency.setTargetAtTime(pitch, audioCtx.currentTime, 0.1);
+        }
+
+        // --- SCENE & GRAPHICS (HD City) ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x060913);
-        scene.fog = new THREE.FogExp2(0x060913, 0.0025);
+        scene.background = new THREE.Color(0x04060c);
+        scene.fog = new THREE.FogExp2(0x04060c, 0.002);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -148,52 +180,67 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
-        const moonLight = new THREE.DirectionalLight(0x88bbff, 0.8);
-        moonLight.position.set(50, 100, -50);
+        const moonLight = new THREE.DirectionalLight(0x88bbff, 0.9);
+        moonLight.position.set(100, 150, -50);
         moonLight.castShadow = true;
         scene.add(moonLight);
 
-        // --- ROAD & ENVIRONMENT ---
-        const roadGeo = new THREE.PlaneGeometry(60, 6000);
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.8 });
+        // --- 4 QATORLI KENG YO'LLAR VA BINOLAR ---
+        const roadGeo = new THREE.PlaneGeometry(80, 6000);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.7 });
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI / 2;
         scene.add(road);
 
-        for(let z = -2900; z < 2900; z += 20) {
-            const line = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 9), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-            line.rotation.x = -Math.PI / 2;
-            line.position.set(0, 0.02, z);
-            scene.add(line);
+        // Chiziqlar va Yo'l chiroqlari
+        for(let z = -2900; z < 2900; z += 25) {
+            [-10, 0, 10].forEach(xPos => {
+                const line = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 10), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(xPos, 0.02, z);
+                scene.add(line);
+            });
+
+            // Ko'cha neon chiroqlari
+            [-42, 42].forEach(xPos => {
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+                pole.position.set(xPos, 8, z);
+                scene.add(pole);
+
+                const light = new THREE.PointLight(0x00e5ff, 1.5, 45);
+                light.position.set(xPos, 15, z);
+                scene.add(light);
+            });
         }
 
-        // Buildings
-        for(let z = -2800; z < 2800; z += 50) {
-            [-45, 45].forEach(x => {
-                const h = 25 + Math.random() * 40;
+        // Tiniq Neon Binolar
+        const bldgColors = [0x182030, 0x0f172a, 0x1e293b, 0x27272a];
+        for(let z = -2800; z < 2800; z += 60) {
+            [-55, 55].forEach(x => {
+                const h = 30 + Math.random() * 50;
                 const b = new THREE.Mesh(
-                    new THREE.BoxGeometry(22, h, 35),
-                    new THREE.MeshStandardMaterial({ color: 0x182030, roughness: 0.2, metalness: 0.5 })
+                    new THREE.BoxGeometry(26, h, 40),
+                    new THREE.MeshStandardMaterial({ color: bldgColors[Math.floor(Math.random()*bldgColors.length)], roughness: 0.2, metalness: 0.6 })
                 );
                 b.position.set(x, h/2, z);
                 scene.add(b);
             });
         }
 
-        // --- MASHINALAR VA DO'KON ---
+        // --- CAR DATA & STORE ---
         const carsData = [
-            { name: "Cobalt Classic", price: 0, color: 0x00e5ff, bought: true },
-            { name: "Gentra Black Edition", price: 500, color: 0x111111, bought: false },
-            { name: "BMW M4 Neon", price: 1200, color: 0xff0055, bought: false },
-            { name: "Hypercar Veno", price: 2500, color: 0xffa500, bought: false }
+            { name: "Cobalt Classic", price: 0, color: 0x00e5ff, wheelColor: 0x111111, bought: true, speedLvl: 1, brakeLvl: 1 },
+            { name: "Gentra Black Edition", price: 500, color: 0x111111, wheelColor: 0xdddddd, bought: false, speedLvl: 1, brakeLvl: 1 },
+            { name: "BMW M4 Neon", price: 1200, color: 0xff0055, wheelColor: 0x00e5ff, bought: false, speedLvl: 1, brakeLvl: 1 },
+            { name: "Hypercar Veno", price: 2500, color: 0xffa500, wheelColor: 0xffd700, bought: false, speedLvl: 1, brakeLvl: 1 }
         ];
         let currentCarIdx = 0;
         let coins = 1000;
 
-        function createCarMesh(colorHex) {
+        function createCarMesh(colorHex, wheelColorHex) {
             const group = new THREE.Group();
             const body = new THREE.Mesh(
                 new THREE.BoxGeometry(2.3, 0.7, 4.6),
@@ -210,12 +257,14 @@
             cabin.position.set(0, 1.25, -0.2);
             group.add(cabin);
 
-            const neon = new THREE.PointLight(colorHex, 2, 8);
+            // Faralar va Neon Light
+            const neon = new THREE.PointLight(colorHex, 2.5, 10);
             neon.position.set(0, 0.1, 0);
             group.add(neon);
 
+            // Wheels
             const wGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.4, 24);
-            const wMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const wMat = new THREE.MeshStandardMaterial({ color: wheelColorHex || 0x111111, metalness: 0.9, roughness: 0.2 });
             [[-1.2, 0.45, 1.4], [1.2, 0.45, 1.4], [-1.2, 0.45, -1.4], [1.2, 0.45, -1.4]].forEach(p => {
                 const w = new THREE.Mesh(wGeo, wMat);
                 w.rotation.z = Math.PI / 2;
@@ -226,8 +275,8 @@
             return group;
         }
 
-        let playerCar = createCarMesh(carsData[0].color);
-        let opponentCar = createCarMesh(0xee5253);
+        let playerCar = createCarMesh(carsData[0].color, carsData[0].wheelColor);
+        let opponentCar = createCarMesh(0xee5253, 0x111111);
         scene.add(playerCar);
         scene.add(opponentCar);
         opponentCar.visible = false;
@@ -236,9 +285,9 @@
         const trafficCars = [];
         const trafficColors = [0xe74c3c, 0x2ecc71, 0xf1c40f, 0x9b59b6, 0x34495e];
 
-        for(let i = 0; i < 12; i++) {
-            const tCar = createCarMesh(trafficColors[i % trafficColors.length]);
-            tCar.position.set((Math.random() - 0.5) * 35, 0, (Math.random() - 0.5) * 2000);
+        for(let i = 0; i < 15; i++) {
+            const tCar = createCarMesh(trafficColors[i % trafficColors.length], 0x111111);
+            tCar.position.set((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 2000);
             scene.add(tCar);
             trafficCars.push({ mesh: tCar, speed: 0.4 + Math.random() * 0.4 });
         }
@@ -246,6 +295,7 @@
         // --- CONTROLS LOGIC ---
         const keys = { gas: false, brake: false, left: false, right: false, nitro: false };
         const handleKey = (code, val) => {
+            initAudio();
             const k = code.toLowerCase();
             if (k === 'w' || k === 'arrowup') keys.gas = val;
             if (k === 's' || k === 'arrowdown') keys.brake = val;
@@ -258,7 +308,7 @@
 
         const bindTouch = (id, key) => {
             const el = document.getElementById(id);
-            const setK = (v) => (e) => { e.preventDefault(); keys[key] = v; };
+            const setK = (v) => (e) => { e.preventDefault(); initAudio(); keys[key] = v; };
             el.addEventListener('touchstart', setK(true)); el.addEventListener('touchend', setK(false));
             el.addEventListener('mousedown', setK(true)); el.addEventListener('mouseup', setK(false));
         };
@@ -269,38 +319,30 @@
         let cameraMode = 0;
         function switchCamera() { cameraMode = (cameraMode + 1) % 3; }
 
-        // --- 1v1 ONLINE SYSTEM ---
+        // --- LOBBY SYSTEM ---
         let isRaceMode = false;
         let activeRoomCode = null;
 
         function createLobby() {
             activeRoomCode = Math.floor(1000 + Math.random() * 9000);
-            alert("✅ POYGA XONASI YARATILDI!\nXona kodi: " + activeRoomCode + "\n\nDo'stingizga ushbu kodni yuboring!");
+            alert("✅ POYGA XONASI YARATILDI!\nXona kodi: " + activeRoomCode);
             start1v1Race();
         }
 
         function joinLobby() {
             const code = document.getElementById('roomCodeInput').value.trim();
-            if(code.length !== 4) {
-                alert("⚠️ Iltimos, 4 xonali to'g'ri xona kodini kiriting!");
-                return;
-            }
+            if(code.length !== 4) return alert("⚠️ Iltimos, 4 xonali kodi kiriting!");
             activeRoomCode = code;
-            alert("🔗 Xonaga ulandingiz! Kodi: " + activeRoomCode + "\nPoyga boshlanmoqda!");
+            alert("🔗 Xonaga ulandingiz! Kodi: " + activeRoomCode);
             start1v1Race();
         }
 
         function start1v1Race() {
             isRaceMode = true;
             document.getElementById('mode-text').innerText = '🏎 1v1 Online (' + activeRoomCode + ')';
-            
-            // Positioning 1v1 Cars at starting line
-            playerCar.position.set(-3, 0, 0);
-            playerCar.rotation.set(0, 0, 0);
-            opponentCar.position.set(3, 0, 0);
-            opponentCar.rotation.set(0, 0, 0);
+            playerCar.position.set(-4, 0, 0); playerCar.rotation.set(0, 0, 0);
+            opponentCar.position.set(4, 0, 0); opponentCar.rotation.set(0, 0, 0);
             opponentCar.visible = true;
-            
             closePanels();
         }
 
@@ -317,11 +359,13 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            let maxSpeed = keys.nitro ? 2.8 : 1.6;
-            let accel = keys.nitro ? 0.08 : 0.04;
+            let curCar = carsData[currentCarIdx];
+            let maxSpeed = (1.6 + curCar.speedLvl * 0.2) * (keys.nitro ? 1.6 : 1.0);
+            let accel = (0.04 + curCar.speedLvl * 0.01) * (keys.nitro ? 1.8 : 1.0);
+            let brakePower = 0.05 + curCar.brakeLvl * 0.02;
 
             if (keys.gas) speed = Math.min(speed + accel, maxSpeed);
-            else if (keys.brake) speed = Math.max(speed - 0.06, -0.4);
+            else if (keys.brake) speed = Math.max(speed - brakePower, -0.4);
             else speed *= 0.96;
 
             if (keys.left) rotation += 0.028 * (speed >= 0 ? 1 : -1);
@@ -330,21 +374,20 @@
             playerCar.rotation.y = rotation;
             playerCar.translateZ(speed);
 
-            // AI Opponent simulation for 1v1 mode
-            if(isRaceMode) {
-                opponentCar.translateZ(1.45 + Math.random() * 0.1);
-            }
+            updateEngineAudio(speed);
 
-            // Traffic Movement
+            if(isRaceMode) opponentCar.translateZ(1.45 + Math.random() * 0.1);
+
+            // Traffic Loop
             trafficCars.forEach(t => {
                 t.mesh.translateZ(t.speed);
                 if(t.mesh.position.z > playerCar.position.z + 200) t.mesh.position.z = playerCar.position.z - 600;
                 if(t.mesh.position.z < playerCar.position.z - 600) t.mesh.position.z = playerCar.position.z + 200;
             });
 
-            // Drift System
-            if(Math.abs(rotation) > 0.05 && Math.abs(speed) > 0.8) {
-                driftScore += Math.round(Math.abs(speed) * 10);
+            // Drift Logic
+            if(Math.abs(rotation) > 0.04 && Math.abs(speed) > 0.8) {
+                driftScore += Math.round(Math.abs(speed) * 12);
                 coins += 1;
                 document.getElementById('drift-score').style.display = 'block';
                 document.getElementById('drift-val').innerText = driftScore;
@@ -352,7 +395,6 @@
                 document.getElementById('drift-score').style.display = 'none';
             }
 
-            // HUD Updates
             document.getElementById('speed').innerText = Math.round(Math.abs(speed) * 160);
             document.getElementById('coins').innerText = coins;
 
@@ -367,7 +409,7 @@
                 const lookAtPos = new THREE.Vector3(0, 1.2, 10).applyMatrix4(playerCar.matrixWorld);
                 camera.lookAt(lookAtPos);
             } else if(cameraMode === 2) {
-                const offset = new THREE.Vector3(12, 10, 15).applyMatrix4(playerCar.matrixWorld);
+                const offset = new THREE.Vector3(14, 12, 18).applyMatrix4(playerCar.matrixWorld);
                 camera.position.lerp(offset, 0.05);
                 camera.lookAt(playerCar.position);
             }
@@ -375,19 +417,25 @@
             renderer.render(scene, camera);
         }
 
-        // --- GARAJ ---
+        // --- GARAJ VA TYUNING UI ---
         function updateGarageUI() {
             const data = carsData[currentCarIdx];
             document.getElementById('car-name').innerText = data.name;
             document.getElementById('car-price').innerText = data.bought ? "Sotib Olingan" : data.price + " $";
             document.getElementById('buy-btn').style.display = data.bought ? "none" : "block";
+            document.getElementById('upg-speed-lvl').innerText = "Lvl " + data.speedLvl;
+            document.getElementById('upg-brake-lvl').innerText = "Lvl " + data.brakeLvl;
+        }
+
+        function reloadPlayerCarMesh() {
+            scene.remove(playerCar);
+            playerCar = createCarMesh(carsData[currentCarIdx].color, carsData[currentCarIdx].wheelColor);
+            scene.add(playerCar);
         }
 
         function nextCar(dir) {
             currentCarIdx = (currentCarIdx + dir + carsData.length) % carsData.length;
-            scene.remove(playerCar);
-            playerCar = createCarMesh(carsData[currentCarIdx].color);
-            scene.add(playerCar);
+            reloadPlayerCarMesh();
             updateGarageUI();
         }
 
@@ -396,19 +444,29 @@
             if(coins >= data.price) {
                 coins -= data.price;
                 data.bought = true;
-                alert(data.name + " muvaffaqiyatli sotib olindi!");
+                alert(data.name + " sotib olindi!");
                 updateGarageUI();
-            } else {
-                alert("Mablag' yetarli emas!");
-            }
+            } else alert("Mablag' yetarli emas!");
         }
 
-        function changeColor() {
-            const randomColor = Math.floor(Math.random()*16777215);
-            carsData[currentCarIdx].color = randomColor;
-            scene.remove(playerCar);
-            playerCar = createCarMesh(randomColor);
-            scene.add(playerCar);
+        function changeCarColor() {
+            carsData[currentCarIdx].color = Math.floor(Math.random()*16777215);
+            reloadPlayerCarMesh();
+        }
+
+        function changeWheelColor() {
+            carsData[currentCarIdx].wheelColor = Math.floor(Math.random()*16777215);
+            reloadPlayerCarMesh();
+        }
+
+        function upgradeStat(type) {
+            let data = carsData[currentCarIdx];
+            if(type === 'speed' && coins >= 200) {
+                coins -= 200; data.speedLvl++;
+            } else if(type === 'brake' && coins >= 150) {
+                coins -= 150; data.brakeLvl++;
+            } else return alert("Tangalar yetarli emas!");
+            updateGarageUI();
         }
 
         function openPanel(id) { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); document.getElementById(id).style.display = 'block'; }
