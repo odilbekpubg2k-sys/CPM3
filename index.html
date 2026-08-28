@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CPM Uzbekistan 3D 1v1</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none; }
+        body { overflow: hidden; background: #080c14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
+        #canvas-container { width: 100vw; height: 100vh; }
+
+        .ui-panel {
+            position: absolute;
+            background: rgba(10, 14, 26, 0.92);
+            border: 1px solid rgba(0, 229, 255, 0.5);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            display: none;
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        #hud { top: 15px; left: 15px; display: block; width: 240px; }
+        #menu, #race-menu { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 360px; text-align: center; }
+        #menu { display: block; }
+
+        h2, h3 { color: #00e5ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        p { margin: 6px 0; font-size: 13px; color: #ccc; }
+
+        input[type="text"] {
+            width: 100%; padding: 12px; margin: 10px 0;
+            background: rgba(255,255,255,0.1); border: 1px solid #00e5ff;
+            color: #fff; border-radius: 8px; text-align: center; font-size: 16px; outline: none;
+        }
+
+        button {
+            width: 100%; padding: 12px; margin: 6px 0;
+            background: linear-gradient(135deg, #008cba, #005f73);
+            border: none; color: white; border-radius: 8px;
+            font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-nitro { background: linear-gradient(135deg, #ff9f43, #ee5253); }
+        .btn-danger { background: linear-gradient(135deg, #ff4757, #c9302c); }
+
+        #touch-controls { position: absolute; bottom: 20px; left: 0; width: 100vw; height: 120px; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 5; }
+        .touch-btn { width: 68px; height: 68px; background: rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid rgba(255,255,255,0.4); color: #fff; }
+        .touch-btn:active { background: rgba(0,229,255,0.6); }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body onclick="window.focus();">
+
+    <div id="canvas-container"></div>
+
+    <!-- HUD -->
+    <div id="hud" class="ui-panel">
+        <h3>🚗 CPM UZBEKISTAN</h3>
+        <p>Tezlik: <b id="speed" style="font-size: 24px; color: #00e5ff;">0</b> km/h</p>
+        <p>Nitro (NOS): <b id="nitro-status" style="color: #ff9f43;">TAYYOR (SHIFT)</b></p>
+        <p>Rejim: <b id="race-mode" style="color: #2ed573;">Erkin Shahar</b></p>
+        <button onclick="openPanel('menu')" style="margin-top: 8px; padding: 8px;">Menyu (ESC)</button>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="menu" class="ui-panel">
+        <h2>CPM 3D UZBEKISTAN</h2>
+        <button onclick="closePanels()">🎮 Shaharga Kirish</button>
+        <button onclick="openPanel('race-menu')" class="btn-nitro">🏎 1v1 POYGA REJIMI</button>
+        <button onclick="alert('Tez orada qo\'shiladi!')">🚘 Garaj</button>
+    </div>
+
+    <!-- 1v1 RACE MENU -->
+    <div id="race-menu" class="ui-panel">
+        <h2>1v1 POYGA TIZIMI</h2>
+        <button onclick="createRaceRoom()">➕ Poyga Yaratish</button>
+        <input type="text" id="roomInput" placeholder="Xona Kodini Kiriting">
+        <button onclick="joinRaceRoom()" class="btn-nitro">🔗 Poygaga Qo'shilish</button>
+        <button onclick="openPanel('menu')" class="btn-danger">Orqaga</button>
+    </div>
+
+    <!-- TOUCH CONTROLS -->
+    <div id="touch-controls">
+        <div style="display: flex; gap: 10px;">
+            <div class="touch-btn" id="btn-left">◀</div>
+            <div class="touch-btn" id="btn-right">▶</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <div class="touch-btn" id="btn-nitro" style="background: rgba(255, 159, 67, 0.6);">🔥</div>
+            <div class="touch-btn" id="btn-brake" style="background: rgba(255, 71, 87, 0.5);">🛑</div>
+            <div class="touch-btn" id="btn-gas" style="background: rgba(46, 213, 115, 0.5);">⚡</div>
+        </div>
+    </div>
+
+    <script>
+        // --- SCENE SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0c101c);
+        scene.fog = new THREE.FogExp2(0x0c101c, 0.0035);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const sun = new THREE.DirectionalLight(0xfffaed, 1.2);
+        sun.position.set(80, 120, 50);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        // --- CITY ENVIRONMENT (BInolar, Svetaforlar, Daraxtlar) ---
+        const road = new THREE.Mesh(new THREE.PlaneGeometry(50, 4000), new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.6 }));
+        road.rotation.x = -Math.PI / 2;
+        scene.add(road);
+
+        // Yo'l chiziqlari
+        for(let z = -1800; z < 1800; z += 18) {
+            const line = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(0, 0.02, z);
+            scene.add(line);
+        }
+
+        // Shahar Elementlarini Yaratish
+        function buildCity() {
+            for(let z = -1800; z < 1800; z += 65) {
+                // Binolar
+                const h1 = 20 + Math.random() * 35;
+                const b1 = new THREE.Mesh(new THREE.BoxGeometry(20, h1, 30), new THREE.MeshStandardMaterial({ color: 0x1e2736, roughness: 0.3 }));
+                b1.position.set(-38, h1/2, z);
+
+                const h2 = 20 + Math.random() * 35;
+                const b2 = new THREE.Mesh(new THREE.BoxGeometry(20, h2, 30), new THREE.MeshStandardMaterial({ color: 0x1e2736, roughness: 0.3 }));
+                b2.position.set(38, h2/2, z);
+                scene.add(b1, b2);
+
+                // Svetaforlar va Fonarlar
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 7), new THREE.MeshStandardMaterial({ color: 0x555555 }));
+                pole.position.set(-23, 3.5, z);
+                
+                const lightBox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x222222 }));
+                lightBox.position.set(-23, 6.5, z);
+
+                const greenLight = new THREE.Mesh(new THREE.SphereGeometry(0.25), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+                greenLight.position.set(-23, 6.1, z + 0.3);
+
+                scene.add(pole, lightBox, greenLight);
+
+                // Daraxtlar
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 3), new THREE.MeshStandardMaterial({ color: 0x5c4033 }));
+                trunk.position.set(24, 1.5, z + 20);
+                const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.5, 6, 8), new THREE.MeshStandardMaterial({ color: 0x2e8b57 }));
+                leaves.position.set(24, 5.5, z + 20);
+                scene.add(trunk, leaves);
+            }
+        }
+        buildCity();
+
+        // --- HAQIQIY 3D MASHINA YARATISH LOGIKASI ---
+        function createDetailedCar(bodyColorHex) {
+            const carGroup = new THREE.Group();
+
+            // Korpus (Body)
+            const mainBody = new THREE.Mesh(
+                new THREE.BoxGeometry(2.2, 0.65, 4.5),
+                new THREE.MeshStandardMaterial({ color: bodyColorHex, metalness: 0.8, roughness: 0.2 })
+            );
+            mainBody.position.y = 0.65;
+            carGroup.add(mainBody);
+
+            // Kabina (Windows/Roof)
+            const cabin = new THREE.Mesh(
+                new THREE.BoxGeometry(1.8, 0.6, 2.2),
+                new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 })
+            );
+            cabin.position.set(0, 1.2, -0.2);
+            carGroup.add(cabin);
+
+            // Kapot formasi
+            const hood = new THREE.Mesh(
+                new THREE.BoxGeometry(2.0, 0.2, 1.2),
+                new THREE.MeshStandardMaterial({ color: bodyColorHex, metalness: 0.8, roughness: 0.2 })
+            );
+            hood.position.set(0, 0.9, 1.3);
+            hood.rotation.x = -0.15;
+            carGroup.add(hood);
+
+            // G'ildiraklar (Wheels)
+            const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.35, 24);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.8 });
+
+            const wheelPositions = [
+                [-1.15, 0.45, 1.4],  // Old chap
+                [1.15, 0.45, 1.4],   // Old o'ng
+                [-1.15, 0.45, -1.4], // Orqa chap
+                [1.15, 0.45, -1.4]  // Orqa o'ng
+            ];
+
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(...pos);
+                carGroup.add(wheel);
+            });
+
+            // Faralar (Headlights)
+            const headlightGeo = new THREE.BoxGeometry(0.4, 0.15, 0.1);
+            const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            
+            const hl1 = new THREE.Mesh(headlightGeo, headlightMat);
+            hl1.position.set(-0.7, 0.7, 2.26);
+            const hl2 = new THREE.Mesh(headlightGeo, headlightMat);
+            hl2.position.set(0.7, 0.7, 2.26);
+            carGroup.add(hl1, hl2);
+
+            return carGroup;
+        }
+
+        const playerCar = createDetailedCar(0x00e5ff); // O'yinchining mashinasi (Moviy Sportcar)
+        const opponentCar = createDetailedCar(0xee5253); // Raqib mashinasi (Qizil)
+        
+        scene.add(playerCar);
+        scene.add(opponentCar);
+        opponentCar.position.set(4, 0, 0);
+
+        // --- BOSHQARUV LOGIKASI ---
+        const keys = { gas: false, brake: false, left: false, right: false, nitro: false };
+
+        const handleKey = (code, val) => {
+            const k = code.toLowerCase();
+            if (k === 'w' || k === 'arrowup') keys.gas = val;
+            if (k === 's' || k === 'arrowdown') keys.brake = val;
+            if (k === 'a' || k === 'arrowleft') keys.left = val;
+            if (k === 'd' || k === 'arrowright') keys.right = val;
+            if (k === 'shift' || k === ' ') keys.nitro = val;
+        };
+
+        window.addEventListener('keydown', e => { handleKey(e.key, true); if(e.key === 'Escape') openPanel('menu'); });
+        window.addEventListener('keyup', e => handleKey(e.key, false));
+
+        const bindTouch = (id, key) => {
+            const el = document.getElementById(id);
+            const setKey = (v) => (e) => { e.preventDefault(); keys[key] = v; };
+            el.addEventListener('touchstart', setKey(true));
+            el.addEventListener('touchend', setKey(false));
+            el.addEventListener('mousedown', setKey(true));
+            el.addEventListener('mouseup', setKey(false));
+        };
+        bindTouch('btn-gas', 'gas'); bindTouch('btn-brake', 'brake');
+        bindTouch('btn-left', 'left'); bindTouch('btn-right', 'right');
+        bindTouch('btn-nitro', 'nitro');
+
+        // --- FIZIKA VA ANIMATSIYA ---
+        let speed = 0, rotation = 0, isRacing = false;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            let maxSpeed = keys.nitro ? 2.6 : 1.5;
+            let accel = keys.nitro ? 0.07 : 0.035;
+
+            if (keys.gas) speed = Math.min(speed + accel, maxSpeed);
+            else if (keys.brake) speed = Math.max(speed - 0.05, -0.4);
+            else speed *= 0.96;
+
+            if (keys.left) rotation += 0.026 * (speed >= 0 ? 1 : -1);
+            if (keys.right) rotation -= 0.026 * (speed >= 0 ? 1 : -1);
+
+            playerCar.rotation.y = rotation;
+            playerCar.translateZ(speed);
+
+            if(isRacing) {
+                opponentCar.translateZ(1.35); // Raqib tezlashuvi
+            }
+
+            document.getElementById('speed').innerText = Math.round(Math.abs(speed) * 165);
+            document.getElementById('nitro-status').innerText = keys.nitro ? '🔥 NITRO AKTIV!' : 'TAYYOR (SHIFT)';
+
+            // Kamera kuzatuvi
+            const camOffset = new THREE.Vector3(0, 4.5, -10).applyMatrix4(playerCar.matrixWorld);
+            camera.position.lerp(camOffset, 0.1);
+            camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 0)));
+
+            renderer.render(scene, camera);
+        }
+
+        // --- POYGA PANELI LOGIKASI ---
+        function createRaceRoom() {
+            const roomCode = Math.floor(1000 + Math.random() * 9000);
+            alert("Xona yaratildi! Kod: " + roomCode);
+            startRace();
+        }
+
+        function joinRaceRoom() {
+            const input = document.getElementById('roomInput').value;
+            if(!input) { alert("Xona kodini kiriting!"); return; }
+            alert(input + " xonasiga ulandingiz!");
+            startRace();
+        }
+
+        function startRace() {
+            isRacing = true;
+            playerCar.position.set(-2.5, 0, 0);
+            opponentCar.position.set(2.5, 0, 0);
+            document.getElementById('race-mode').innerText = '🏎 1v1 POYGA';
+            closePanels();
+        }
+
+        function openPanel(id) { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); document.getElementById(id).style.display = 'block'; }
+        function closePanels() { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); document.getElementById('hud').style.display = 'block'; }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
