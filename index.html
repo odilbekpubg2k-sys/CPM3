@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CPM Uzbekistan Gentra Edition</title>
+    <title>CPM Uzbekistan Gentra Multiplayer</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #fff; }
@@ -11,40 +11,40 @@
 
         /* HUD PANEL */
         #hud {
-            position: absolute; top: 12px; left: 12px; z-index: 10;
+            position: absolute; top: 10px; left: 10px; z-index: 10;
             background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(0, 229, 255, 0.4);
-            border-radius: 12px; padding: 8px 14px; font-size: 12px; display: flex; gap: 12px; align-items: center;
+            border-radius: 12px; padding: 6px 12px; font-size: 11px; display: flex; gap: 10px; align-items: center;
             backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-        #hud b { color: #00e5ff; font-size: 14px; }
+        #hud b { color: #00e5ff; font-size: 13px; }
 
-        .top-btns { position: absolute; top: 12px; right: 12px; z-index: 10; display: flex; gap: 6px; }
+        .top-btns { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 5px; }
         .top-btns button {
-            padding: 8px 12px; background: rgba(0, 229, 255, 0.2); border: 1px solid #00e5ff;
-            color: #fff; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;
+            padding: 7px 10px; background: rgba(0, 229, 255, 0.2); border: 1px solid #00e5ff;
+            color: #fff; border-radius: 8px; font-weight: bold; font-size: 10px; cursor: pointer;
             backdrop-filter: blur(6px);
         }
 
         #race-banner {
             position: absolute; top: 80px; width: 100%; text-align: center;
-            font-size: 36px; font-weight: 900; color: #ff4757; text-shadow: 0 0 15px #ff4757; display: none; z-index: 15;
+            font-size: 32px; font-weight: 900; color: #ff4757; text-shadow: 0 0 15px #ff4757; display: none; z-index: 15;
         }
 
         .ui-panel {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 88%; max-width: 350px; background: rgba(15, 23, 42, 0.95);
+            width: 88%; max-width: 320px; background: rgba(15, 23, 42, 0.95);
             border: 1px solid rgba(0, 229, 255, 0.5); border-radius: 16px;
-            padding: 18px; backdrop-filter: blur(12px); display: none; z-index: 100; text-align: center;
+            padding: 16px; backdrop-filter: blur(12px); display: none; z-index: 100; text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
-        h2 { color: #00e5ff; text-transform: uppercase; margin-bottom: 10px; font-size: 16px; letter-spacing: 1px; }
-        p { margin: 6px 0; font-size: 12px; color: #94a3b8; }
+        h2 { color: #00e5ff; text-transform: uppercase; margin-bottom: 8px; font-size: 14px; letter-spacing: 1px; }
+        p { margin: 4px 0; font-size: 11px; color: #94a3b8; }
 
         button.btn {
-            width: 100%; padding: 11px; margin: 5px 0;
+            width: 100%; padding: 10px; margin: 4px 0;
             background: linear-gradient(135deg, #0284c7, #0369a1);
-            border: none; color: white; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer;
+            border: none; color: white; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;
         }
         .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
         .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
@@ -52,41 +52,36 @@
 
         /* TOUCH CONTROLS */
         #touch-controls { 
-            position: absolute; bottom: 20px; left: 0; width: 100%; 
-            display: flex; justify-content: space-between; padding: 0 16px; 
+            position: absolute; bottom: 15px; left: 0; width: 100%; 
+            display: flex; justify-content: space-between; padding: 0 12px; 
             pointer-events: none; z-index: 20; 
         }
-        .touch-group { display: flex; gap: 8px; pointer-events: auto; }
+        .touch-group { display: flex; gap: 6px; pointer-events: auto; }
         .touch-btn { 
-            width: 56px; height: 56px; background: rgba(255,255,255,0.1); 
+            width: 50px; height: 50px; background: rgba(255,255,255,0.12); 
             border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 18px; font-weight: bold; border: 1px solid rgba(255,255,255,0.25); color: #fff;
+            font-size: 16px; font-weight: bold; border: 1px solid rgba(255,255,255,0.3); color: #fff;
             backdrop-filter: blur(4px);
         }
         .touch-btn:active { background: rgba(0,229,255,0.5); transform: scale(0.92); }
-        #btn-gas { background: rgba(16, 185, 129, 0.3); border-color: #10b981; }
-        #btn-brake { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+        #btn-gas { background: rgba(16, 185, 129, 0.4); border-color: #10b981; }
+        #btn-brake { background: rgba(239, 68, 68, 0.4); border-color: #ef4444; }
 
         #drift-score {
-            position: absolute; top: 60px; left: 12px;
-            font-size: 16px; font-weight: bold; color: #f59e0b; text-shadow: 0 0 10px #f59e0b; display: none; z-index: 5;
-        }
-        #abs-indicator {
-            position: absolute; top: 88px; left: 12px;
-            font-size: 10px; font-weight: bold; color: #ef4444; display: none; z-index: 5; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 6px; border: 1px solid #ef4444;
+            position: absolute; top: 55px; left: 10px;
+            font-size: 14px; font-weight: bold; color: #f59e0b; text-shadow: 0 0 10px #f59e0b; display: none; z-index: 5;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
     <div id="canvas-container"></div>
 
     <div id="hud">
-        <div>Tezlik: <b id="speed">0</b> km/h</div>
-        <div>FPS: <b id="fps-val" style="color: #10b981;">60</b></div>
-        <div>Tanga: <b id="coins" style="color: #f59e0b;">0</b> $</div>
+        <div>KM/H: <b id="speed">0</b></div>
+        <div>FPS: <b id="fps-val" style="color:#10b981;">60</b></div>
+        <div>ONLINE: <b id="online-val" style="color:#f59e0b;">1</b></div>
     </div>
 
     <div class="top-btns">
@@ -97,52 +92,46 @@
 
     <div id="race-banner">3</div>
     <div id="drift-score">DRIFT: +<span id="drift-val">0</span></div>
-    <div id="abs-indicator">ABS SYSTEM ACTIVE</div>
 
-    <!-- MAIN SOZLAMALAR MENYU -->
+    <!-- MAIN MENU -->
     <div id="pause-menu" class="ui-panel">
         <h2>SOZLAMALAR VA MENYU</h2>
         <button class="btn btn-success" onclick="togglePause()">▶ Davom Ettirish</button>
-        <button class="btn" onclick="openPanel('settings-menu')">⚙️ FPS & Grafika Sozlamalari</button>
-        <button class="btn" onclick="openPanel('physics-menu')">🏎️ ABS & Fizika Sozlamalari</button>
-        <button class="btn btn-purple" onclick="openPanel('garage-menu')">🚘 Garaj & Mashinalar</button>
+        <button class="btn" onclick="openPanel('settings-menu')">⚙️ FPS & Grafika</button>
+        <button class="btn" onclick="openPanel('physics-menu')">🏎️ Fizika Sozlamalari</button>
+        <button class="btn btn-purple" onclick="openPanel('garage-menu')">🚘 Garaj & Tuning</button>
         <button class="btn btn-danger" onclick="resetPosition()">🔄 Pozitsiyani Tiklash</button>
     </div>
 
-    <!-- FPS VA GRAFIKA SOZLAMALARI -->
+    <!-- GRAFIKA -->
     <div id="settings-menu" class="ui-panel">
         <h2>FPS & GRAFIKA</h2>
-        <p>FPS Limiti:</p>
         <button class="btn" onclick="setFPS(30)">⚡ 30 FPS Rejimi</button>
         <button class="btn btn-success" onclick="setFPS(60)">🚀 60 FPS Rejimi</button>
-        <p>Sifat (Optimallashtirish):</p>
-        <button class="btn" onclick="setGraphics('low')">📉 Past Grafika (Tezkor)</button>
+        <button class="btn" onclick="setGraphics('low')">📉 Past Grafika</button>
         <button class="btn" onclick="setGraphics('high')">✨ Yuqori Grafika (HD)</button>
-        <button class="btn btn-purple" onclick="toggleTraffic()">🚗 Trafik Mashinalari: <span id="traffic-status">ON</span></button>
-        <button class="btn btn-danger" onclick="openPanel('pause-menu')" style="margin-top: 8px;">Orqaga</button>
+        <button class="btn btn-danger" onclick="openPanel('pause-menu')">Orqaga</button>
     </div>
 
-    <!-- ABS VA FIZIKA SOZLAMALARI -->
+    <!-- FIZIKA -->
     <div id="physics-menu" class="ui-panel">
-        <h2>ABS VA FIZIKA</h2>
-        <button class="btn btn-success" onclick="toggleABS()">🛑 ABS Tizimi: <span id="abs-status">YOQILGAN</span></button>
+        <h2>FIZIKA SOZLAMALARI</h2>
         <button class="btn" onclick="setPhysics('drift')">🏎️ Drift Rejimi</button>
         <button class="btn" onclick="setPhysics('real')">🏆 Realistik Boshqaruv</button>
-        <button class="btn btn-danger" onclick="openPanel('pause-menu')" style="margin-top: 8px;">Orqaga</button>
+        <button class="btn btn-danger" onclick="openPanel('pause-menu')">Orqaga</button>
     </div>
 
     <!-- GARAJ -->
     <div id="garage-menu" class="ui-panel">
         <h2>GARAJ</h2>
-        <p id="car-name" style="font-weight: bold; color: #00e5ff; font-size: 14px;">Gentra Black Edition</p>
-        <button class="btn" onclick="selectCarType(0)">🚘 Chevrolet Gentra</button>
-        <button class="btn" onclick="selectCarType(1)">🏎 Cobalt Sport</button>
-        <button class="btn" onclick="selectCarType(2)">🚜 Tracker SUV</button>
-        <button class="btn btn-purple" onclick="changeCarColor()">🎨 Rangi O'zgartirish</button>
-        <button class="btn btn-danger" onclick="openPanel('pause-menu')" style="margin-top: 8px;">Orqaga</button>
+        <p id="car-name" style="font-weight: bold; color: #00e5ff;">Chevrolet Gentra Black Edition</p>
+        <button class="btn" onclick="changeCarColor(0x111111)">🖤 Qora Gentra</button>
+        <button class="btn" onclick="changeCarColor(0xffffff)">🤍 Oq Gentra</button>
+        <button class="btn" onclick="changeCarColor(0x002266)">💙 To'q Ko'k Gentra</button>
+        <button class="btn btn-danger" onclick="openPanel('pause-menu')">Orqaga</button>
     </div>
 
-    <!-- TOUCH CONTROLS -->
+    <!-- CONTROLS -->
     <div id="touch-controls">
         <div class="touch-group">
             <div class="touch-btn" id="btn-left">◀</div>
@@ -156,14 +145,30 @@
     </div>
 
     <script>
-        let isPaused = false;
-        let isRacing = false;
-        let absEnabled = true;
-        let trafficEnabled = true;
-        let targetFPS = 60;
-        let physicsMode = 'drift';
+        let isPaused = false, isRacing = false, targetFPS = 60, physicsMode = 'drift';
+        let otherPlayers = {};
 
-        // THREE.JS SETUP
+        // MULTIPLAYER ULANI (VPS IP manzilingizni kiriting)
+        const ws = new WebSocket('ws://localhost:8765');
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if(data.type === 'update') {
+                const players = data.players;
+                document.getElementById('online-val').innerText = Object.keys(players).length;
+                for(let id in players) {
+                    if(id !== data.id) {
+                        if(!otherPlayers[id]) {
+                            otherPlayers[id] = createGentra(0xef4444);
+                            scene.add(otherPlayers[id]);
+                        }
+                        otherPlayers[id].position.set(players[id].x, players[id].y, players[id].z);
+                        otherPlayers[id].rotation.y = players[id].rot;
+                    }
+                }
+            }
+        };
+
+        // THREE.JS SCENE SETUP
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0f172a);
@@ -177,101 +182,88 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        // REALISTIK YORUG'LIK (Tiniq grafika uchun)
+        // YORUG'LIK VA SOYA
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.5);
+        const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
         sunLight.position.set(50, 120, 50);
         sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
         scene.add(sunLight);
 
-        const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x1e293b, 0.8);
-        scene.add(hemiLight);
-
-        // YO'LLAR VA SHAHAR
-        const roadGroup = new THREE.Group();
+        // YO'L VA SHAHAR BINOLARI
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
-
-        const mainRoad = new THREE.Mesh(new THREE.PlaneGeometry(36, 3000), roadMat);
+        const mainRoad = new THREE.Mesh(new THREE.PlaneGeometry(36, 4000), roadMat);
         mainRoad.rotation.x = -Math.PI / 2;
         mainRoad.receiveShadow = true;
-        roadGroup.add(mainRoad);
+        scene.add(mainRoad);
 
-        const crossRoad = new THREE.Mesh(new THREE.PlaneGeometry(3000, 36), roadMat);
-        crossRoad.rotation.x = -Math.PI / 2;
-        crossRoad.receiveShadow = true;
-        roadGroup.add(crossRoad);
-
-        scene.add(roadGroup);
-
-        // SHAHAR BINOLARI
-        const bldgGeo = new THREE.BoxGeometry(20, 50, 20);
-        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
-        for(let z = -800; z < 800; z += 70) {
+        const bldgGeo = new THREE.BoxGeometry(20, 60, 20);
+        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
+        for(let z = -1000; z < 1000; z += 70) {
             if(Math.abs(z) < 50) continue;
             [-35, 35].forEach(x => {
                 const b = new THREE.Mesh(bldgGeo, bldgMat);
-                b.position.set(x, 25, z);
+                b.position.set(x, 30, z);
                 b.castShadow = true;
                 b.receiveShadow = true;
                 scene.add(b);
             });
         }
 
-        // MASHINA MODELLARI
-        let playerCar = new THREE.Group();
-        let rivalCar = new THREE.Group();
-        scene.add(playerCar);
-        scene.add(rivalCar);
-        rivalCar.position.set(6, 0, 0);
+        // DETALLASHGAN CHEVROLET GENTRA BUILDER
+        function createGentra(colorHex = 0x111111) {
+            const gentra = new THREE.Group();
 
-        const loader = new THREE.GLTFLoader();
-        // CORS va 404 xatosiz ishlaydigan CDN orqali yuklanadigan yuqori sifatli sedan (Gentra uslubidagi) 3D GLB modeli
-        const gentraGlbUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/models/gltf/Ferrari458/Ferrari458.glb';
+            const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.2, metalness: 0.5 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.75, 4.3), bodyMat);
+            body.position.y = 0.55;
+            body.castShadow = true;
+            gentra.add(body);
 
-        let loadedMesh = null;
-        loader.load(gentraGlbUrl, (gltf) => {
-            loadedMesh = gltf.scene;
-            loadedMesh.scale.set(1.1, 1.1, 1.1);
-            loadedMesh.rotation.y = Math.PI;
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.65, 2.3), bodyMat);
+            cabin.position.set(0, 1.2, -0.2);
+            cabin.castShadow = true;
+            gentra.add(cabin);
 
-            loadedMesh.traverse((child) => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.1, metalness: 0.8 });
+            const glass = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 2.2), glassMat);
+            glass.position.set(0, 1.22, -0.2);
+            gentra.add(glass);
+
+            // Faralar
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.1), headLightMat);
+            hl1.position.set(-0.75, 0.65, 2.15);
+            const hl2 = hl1.clone(); hl2.position.x = 0.75;
+            gentra.add(hl1); gentra.add(hl2);
+
+            // G'ildiraklar
+            const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 20);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
+            wheelGeo.rotateZ(Math.PI / 2);
+
+            [[-1.05, 0.38, 1.3], [1.05, 0.38, 1.3], [-1.05, 0.38, -1.3], [1.05, 0.38, -1.3]].forEach(pos => {
+                const w = new THREE.Mesh(wheelGeo, wheelMat);
+                w.position.set(...pos);
+                w.castShadow = true;
+                gentra.add(w);
             });
 
-            playerCar.add(loadedMesh.clone());
-            rivalCar.add(loadedMesh.clone());
-        }, undefined, (err) => {
-            console.error("GLB yuklanishda xato:", err);
-        });
-
-        // TRAFIK MASHINALARI
-        const trafficGroup = new THREE.Group();
-        for(let i = 0; i < 6; i++) {
-            let t = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.2, 4.2), new THREE.MeshStandardMaterial({ color: 0x64748b }));
-            t.position.set((i % 2 === 0 ? 9 : -9), 0.6, (i - 3) * 150);
-            t.castShadow = true;
-            trafficGroup.add(t);
+            return gentra;
         }
-        scene.add(trafficGroup);
 
-        // CONTROLS
+        let playerCar = createGentra(0x111111);
+        scene.add(playerCar);
+
+        let rivalCar = createGentra(0x334155);
+        rivalCar.position.set(5, 0, 0);
+        scene.add(rivalCar);
+
+        // CONTROLS HANDLER
         const keys = { gas: false, brake: false, left: false, right: false, nitro: false };
-        const setKey = (code, val) => {
-            const k = code.toLowerCase();
-            if (k === 'w' || k === 'arrowup') keys.gas = val;
-            if (k === 's' || k === 'arrowdown') keys.brake = val;
-            if (k === 'a' || k === 'arrowleft') keys.left = val;
-            if (k === 'd' || k === 'arrowright') keys.right = val;
-            if (k === 'shift' || k === ' ') keys.nitro = val;
-        };
-        window.addEventListener('keydown', e => setKey(e.key, true));
-        window.addEventListener('keyup', e => setKey(e.key, false));
-
         const bindTouch = (id, key) => {
             const el = document.getElementById(id);
             const handler = (v) => (e) => { e.preventDefault(); keys[key] = v; };
@@ -281,124 +273,121 @@
         bindTouch('btn-gas', 'gas'); bindTouch('btn-brake', 'brake');
         bindTouch('btn-left', 'left'); bindTouch('btn-right', 'right'); bindTouch('btn-nitro', 'nitro');
 
-        // FUNCTIONS
-        function setFPS(val) { targetFPS = val; document.getElementById('fps-val').innerText = val; }
-        function setGraphics(level) { renderer.setPixelRatio(level === 'low' ? 0.75 : Math.min(window.devicePixelRatio, 2)); }
-        function toggleTraffic() { trafficEnabled = !trafficEnabled; trafficGroup.visible = trafficEnabled; document.getElementById('traffic-status').innerText = trafficEnabled ? 'ON' : 'OFF'; }
-        function toggleABS() { absEnabled = !absEnabled; document.getElementById('abs-status').innerText = absEnabled ? 'YOQILGAN' : 'O\'CHIRILGAN'; }
-        function setPhysics(mode) { physicsMode = mode; }
+        window.addEventListener('keydown', e => {
+            const k = e.key.toLowerCase();
+            if(k === 'w' || k === 'arrowup') keys.gas = true;
+            if(k === 's' || k === 'arrowdown') keys.brake = true;
+            if(k === 'a' || k === 'arrowleft') keys.left = true;
+            if(k === 'd' || k === 'arrowright') keys.right = true;
+            if(k === 'shift') keys.nitro = true;
+        });
+        window.addEventListener('keyup', e => {
+            const k = e.key.toLowerCase();
+            if(k === 'w' || k === 'arrowup') keys.gas = false;
+            if(k === 's' || k === 'arrowdown') keys.brake = false;
+            if(k === 'a' || k === 'arrowleft') keys.left = false;
+            if(k === 'd' || k === 'arrowright') keys.right = false;
+            if(k === 'shift') keys.nitro = false;
+        });
 
-        function start1vs1Race() {
-            isRacing = true;
-            playerCar.position.set(-4, 0, playerCar.position.z);
-            rivalCar.position.set(4, 0, playerCar.position.z);
-            playerCar.rotation.y = 0; rivalCar.rotation.y = 0;
-            
-            const banner = document.getElementById('race-banner');
-            banner.style.display = 'block';
-            let count = 3; banner.innerText = count;
-
-            let timer = setInterval(() => {
-                count--;
-                if(count > 0) banner.innerText = count;
-                else if(count === 0) banner.innerText = "GO!";
-                else { banner.style.display = 'none'; clearInterval(timer); }
-            }, 1000);
-        }
-
-        let cameraMode = 0;
-        function switchCamera() { cameraMode = (cameraMode + 1) % 3; }
+        // UI FUNKSIYALARI
+        function setFPS(val) { targetFPS = val; document.getElementById('fps-val').innerText = val; openPanel('pause-menu'); }
+        function setGraphics(l) { renderer.setPixelRatio(l === 'low' ? 0.8 : Math.min(window.devicePixelRatio, 2)); openPanel('pause-menu'); }
+        function setPhysics(m) { physicsMode = m; openPanel('pause-menu'); }
         function togglePause() { isPaused = !isPaused; if(isPaused) openPanel('pause-menu'); else closePanels(); }
         function openPanel(id) { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); document.getElementById(id).style.display = 'block'; }
         function closePanels() { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); isPaused = false; }
         function resetPosition() { playerCar.position.set(0, 0, playerCar.position.z); rotation = 0; closePanels(); }
 
-        let currentCarIdx = 0;
-        function selectCarType(idx) {
-            currentCarIdx = idx;
-            const names = ["Gentra Black Edition", "Cobalt Sport", "Tracker SUV"];
-            document.getElementById('car-name').innerText = names[idx];
-            
-            if (loadedMesh) {
-                while(playerCar.children.length > 0){ playerCar.remove(playerCar.children[0]); }
-                let newModel = loadedMesh.clone();
-                playerCar.add(newModel);
-            }
+        function changeCarColor(hex) {
+            scene.remove(playerCar);
+            playerCar = createGentra(hex);
+            scene.add(playerCar);
+            closePanels();
         }
 
-        function changeCarColor() {
-            alert("Rangi o'zgartirildi!");
+        let cameraMode = 0;
+        function switchCamera() { cameraMode = (cameraMode + 1) % 3; }
+
+        let rivalSpeed = 0;
+        function start1vs1Race() {
+            isRacing = true;
+            playerCar.position.set(-3, 0, playerCar.position.z);
+            rivalCar.position.set(3, 0, playerCar.position.z);
+            rivalSpeed = 0;
+            const banner = document.getElementById('race-banner');
+            banner.style.display = 'block';
+            let c = 3; banner.innerText = c;
+            let t = setInterval(() => {
+                c--;
+                if(c > 0) banner.innerText = c;
+                else if(c === 0) banner.innerText = "GO!";
+                else { banner.style.display = 'none'; clearInterval(t); }
+            }, 1000);
         }
 
-        // MAIN LOOP
-        let speed = 0, rotation = 0, rivalSpeed = 0, coins = 0, driftScore = 0;
-        let lastFrameTime = performance.now();
+        // ANIMATSIYA VA FIZIKA
+        let speed = 0, rotation = 0, driftScore = 0;
+        let lastTime = performance.now();
 
-        function animate(currentTime) {
+        function animate(now) {
             requestAnimationFrame(animate);
+            if(now - lastTime < 1000 / targetFPS) return;
+            lastTime = now;
 
-            const delta = currentTime - lastFrameTime;
-            const interval = 1000 / targetFPS;
+            if(isPaused) return;
 
-            if (delta < interval) return;
-            lastFrameTime = currentTime - (delta % interval);
+            let maxSpeed = keys.nitro ? 1.8 : 1.2;
+            let accel = keys.nitro ? 0.04 : 0.02;
 
-            if (isPaused) return;
+            if(keys.gas) speed = Math.min(speed + accel, maxSpeed);
+            else if(keys.brake) speed = Math.max(speed - 0.05, -0.3);
+            else speed *= 0.96;
 
-            let maxSpeed = keys.nitro ? 2.0 : 1.3;
-            let accel = keys.nitro ? 0.05 : 0.025;
-
-            if (keys.gas) speed = Math.min(speed + accel, maxSpeed);
-            else if (keys.brake) {
-                if (absEnabled && Math.abs(speed) > 0.5) {
-                    speed = Math.max(speed - 0.03, 0);
-                    document.getElementById('abs-indicator').style.display = 'block';
-                } else {
-                    speed = Math.max(speed - 0.06, -0.4);
-                    document.getElementById('abs-indicator').style.display = 'none';
-                }
-            } else {
-                document.getElementById('abs-indicator').style.display = 'none';
-                speed *= 0.96;
-            }
-
-            let turnSpeed = physicsMode === 'drift' ? 0.03 : 0.02;
-
-            if (Math.abs(speed) > 0.05) {
-                if (keys.left) rotation += turnSpeed * (speed > 0 ? 1 : -1);
-                if (keys.right) rotation -= turnSpeed * (speed > 0 ? 1 : -1);
+            let turnScale = physicsMode === 'drift' ? 0.035 : 0.02;
+            if(Math.abs(speed) > 0.05) {
+                if(keys.left) rotation += turnScale;
+                if(keys.right) rotation -= turnScale;
             }
 
             playerCar.rotation.y = rotation;
             playerCar.translateZ(speed);
 
-            if (isRacing) {
-                rivalSpeed = Math.min(rivalSpeed + 0.022, 1.35);
+            if(isRacing) {
+                rivalSpeed = Math.min(rivalSpeed + 0.018, 1.25);
                 rivalCar.translateZ(rivalSpeed);
             }
 
-            document.getElementById('speed').innerText = Math.round(Math.abs(speed) * 150);
-            document.getElementById('coins').innerText = coins;
+            document.getElementById('speed').innerText = Math.round(Math.abs(speed) * 160);
 
-            if (Math.abs(rotation) > 0.03 && Math.abs(speed) > 0.6 && !absEnabled) {
-                driftScore += 10;
-                coins += 1;
+            // Drift hisoblash
+            if(Math.abs(rotation) > 0.03 && Math.abs(speed) > 0.5) {
+                driftScore += 5;
                 document.getElementById('drift-score').style.display = 'block';
                 document.getElementById('drift-val').innerText = driftScore;
             } else {
                 document.getElementById('drift-score').style.display = 'none';
             }
 
-            if (cameraMode === 0) {
-                const targetPos = playerCar.position.clone().add(new THREE.Vector3(0, 3.8, -9.5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
-                camera.position.lerp(targetPos, 0.2);
-                camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 3)));
-            } else if (cameraMode === 1) {
-                const targetPos = playerCar.position.clone().add(new THREE.Vector3(0, 1.3, 0.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
-                camera.position.copy(targetPos);
+            // WEBSOCKET POS YUBORISH
+            if(ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'move',
+                    pos: { x: playerCar.position.x, y: playerCar.position.y, z: playerCar.position.z, rot: rotation }
+                }));
+            }
+
+            // KAMERA REJIMLARI
+            if(cameraMode === 0) {
+                const camPos = playerCar.position.clone().add(new THREE.Vector3(0, 3.5, -8.5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
+                camera.position.lerp(camPos, 0.2);
+                camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1, 2)));
+            } else if(cameraMode === 1) {
+                const camPos = playerCar.position.clone().add(new THREE.Vector3(0, 1.3, 0.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
+                camera.position.copy(camPos);
                 camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 10).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation)));
             } else {
-                camera.position.set(playerCar.position.x + 14, playerCar.position.y + 16, playerCar.position.z - 14);
+                camera.position.set(playerCar.position.x + 12, playerCar.position.y + 14, playerCar.position.z - 12);
                 camera.lookAt(playerCar.position);
             }
 
