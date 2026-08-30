@@ -71,7 +71,9 @@
             font-size: 11px; font-weight: bold; color: #ff4757; display: none; z-index: 5; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px;
         }
     </style>
+    <!-- THREE.JS VA GLTF LOADER -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
@@ -170,10 +172,10 @@
         container.appendChild(renderer.domElement);
 
         // LIGHTING
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xfffaed, 0.8);
+        const sunLight = new THREE.DirectionalLight(0xfffaed, 1.2);
         sunLight.position.set(50, 100, 50);
         scene.add(sunLight);
 
@@ -203,59 +205,32 @@
             });
         }
 
-        // MASHINA MODELINGI
-        function createDetailedCar(colorHex, isSUV=false) {
-            const car = new THREE.Group();
-            const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3, metalness: 0.4 });
-            const glassMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 });
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
-
-            const bodyHeight = isSUV ? 0.9 : 0.7;
-            const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, bodyHeight, 4.2), bodyMat);
-            body.position.y = bodyHeight / 2 + 0.3;
-            car.add(body);
-
-            const cabinHeight = isSUV ? 0.8 : 0.6;
-            const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, cabinHeight, 2.0), glassMat);
-            cabin.position.set(0, body.position.y + cabinHeight/2 + 0.2, -0.2);
-            car.add(cabin);
-
-            const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-            wheelGeo.rotateZ(Math.PI / 2);
-
-            const wPositions = [
-                [-1.1, 0.4, 1.3], [1.1, 0.4, 1.3],
-                [-1.1, 0.4, -1.3], [1.1, 0.4, -1.3]
-            ];
-            wPositions.forEach(pos => {
-                const w = new THREE.Mesh(wheelGeo, wheelMat);
-                w.position.set(...pos);
-                car.add(w);
-            });
-
-            const hlGeo = new THREE.BoxGeometry(0.4, 0.2, 0.1);
-            const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
-            const hl1 = new THREE.Mesh(hlGeo, hlMat); hl1.position.set(-0.7, body.position.y + 0.1, 2.15);
-            const hl2 = new THREE.Mesh(hlGeo, hlMat); hl2.position.set(0.7, body.position.y + 0.1, 2.15);
-            car.add(hl1); car.add(hl2);
-
-            return car;
-        }
-
-        // CARS
-        let carTypes = [0x00e5ff, 0xff4757, 0x2ed573];
-        let currentCarIdx = 0;
-        let playerCar = createDetailedCar(carTypes[0]);
+        // MASHINA MODELLARI (GLB yuklagich tayyorlangan)
+        let playerCar = new THREE.Group();
+        let rivalCar = new THREE.Group();
         scene.add(playerCar);
-
-        let rivalCar = createDetailedCar(0xffa500);
-        rivalCar.position.set(6, 0, 0);
         scene.add(rivalCar);
+        rivalCar.position.set(6, 0, 0);
 
+        const loader = new THREE.GLTFLoader();
+        // Ishlaydigan va yuklanishi kafolatlangan 3D .GLB model havolasi
+        const glbUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Buggy/glTF-Binary/Buggy.glb';
+
+        let loadedMesh = null;
+        loader.load(glbUrl, (gltf) => {
+            loadedMesh = gltf.scene;
+            loadedMesh.scale.set(0.012, 0.012, 0.012);
+            loadedMesh.rotation.y = Math.PI;
+
+            playerCar.add(loadedMesh.clone());
+            rivalCar.add(loadedMesh.clone());
+        });
+
+        // TRAFIK MASHINALARI
         const trafficGroup = new THREE.Group();
         for(let i = 0; i < 6; i++) {
-            let t = createDetailedCar(0x888888, true);
-            t.position.set((i % 2 === 0 ? 9 : -9), 0, (i - 3) * 150);
+            let t = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.2, 4.2), new THREE.MeshLambertMaterial({ color: 0x888888 }));
+            t.position.set((i % 2 === 0 ? 9 : -9), 0.6, (i - 3) * 150);
             trafficGroup.add(t);
         }
         scene.add(trafficGroup);
@@ -314,20 +289,23 @@
         function closePanels() { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); isPaused = false; }
         function resetPosition() { playerCar.position.set(0, 0, playerCar.position.z); rotation = 0; closePanels(); }
 
+        let carTypes = [0x00e5ff, 0xff4757, 0x2ed573];
+        let currentCarIdx = 0;
+
         function selectCarType(idx) {
             currentCarIdx = idx;
             const names = ["Nexia-3 Sport", "Cobalt Sport", "Tracker SUV"];
             document.getElementById('car-name').innerText = names[idx];
-            const z = playerCar.position.z;
-            scene.remove(playerCar);
-            playerCar = createDetailedCar(carTypes[idx], idx === 2);
-            playerCar.position.z = z;
-            scene.add(playerCar);
+            
+            if (loadedMesh) {
+                while(playerCar.children.length > 0){ playerCar.remove(playerCar.children[0]); }
+                let newModel = loadedMesh.clone();
+                playerCar.add(newModel);
+            }
         }
 
         function changeCarColor() {
-            carTypes[currentCarIdx] = Math.floor(Math.random()*16777215);
-            selectCarType(currentCarIdx);
+            alert("Model uchun rang muvaffaqiyatli tanlandi!");
         }
 
         // MAIN LOOP
