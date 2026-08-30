@@ -3,75 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CPM Uzbekistan Full Edition</title>
+    <title>CPM Uzbekistan Gentra Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: system-ui, sans-serif; color: #fff; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #fff; }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
+        /* HUD PANEL */
         #hud {
-            position: absolute; top: 10px; left: 10px; z-index: 10;
-            background: rgba(10, 14, 26, 0.85); border: 1px solid rgba(0, 229, 255, 0.4);
-            border-radius: 10px; padding: 6px 12px; font-size: 11px; display: flex; gap: 10px; align-items: center;
+            position: absolute; top: 12px; left: 12px; z-index: 10;
+            background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(0, 229, 255, 0.4);
+            border-radius: 12px; padding: 8px 14px; font-size: 12px; display: flex; gap: 12px; align-items: center;
+            backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-        #hud b { color: #00e5ff; font-size: 13px; }
+        #hud b { color: #00e5ff; font-size: 14px; }
 
-        .top-btns { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 5px; }
+        .top-btns { position: absolute; top: 12px; right: 12px; z-index: 10; display: flex; gap: 6px; }
         .top-btns button {
-            padding: 6px 10px; background: rgba(0, 229, 255, 0.25); border: 1px solid #00e5ff;
-            color: #fff; border-radius: 6px; font-weight: bold; font-size: 10px; cursor: pointer;
+            padding: 8px 12px; background: rgba(0, 229, 255, 0.2); border: 1px solid #00e5ff;
+            color: #fff; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;
+            backdrop-filter: blur(6px);
         }
 
         #race-banner {
-            position: absolute; top: 60px; width: 100%; text-align: center;
-            font-size: 28px; font-weight: 900; color: #ff4757; text-shadow: 0 0 10px #ff4757; display: none; z-index: 15;
+            position: absolute; top: 80px; width: 100%; text-align: center;
+            font-size: 36px; font-weight: 900; color: #ff4757; text-shadow: 0 0 15px #ff4757; display: none; z-index: 15;
         }
 
         .ui-panel {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 85%; max-width: 340px; background: rgba(10, 14, 26, 0.95);
-            border: 1px solid rgba(0, 229, 255, 0.5); border-radius: 14px;
-            padding: 14px; backdrop-filter: blur(10px); display: none; z-index: 100; text-align: center;
-            max-height: 85vh; overflow-y: auto;
+            width: 88%; max-width: 350px; background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(0, 229, 255, 0.5); border-radius: 16px;
+            padding: 18px; backdrop-filter: blur(12px); display: none; z-index: 100; text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
-        h2 { color: #00e5ff; text-transform: uppercase; margin-bottom: 6px; font-size: 15px; }
-        p { margin: 4px 0; font-size: 11px; color: #ccc; }
+        h2 { color: #00e5ff; text-transform: uppercase; margin-bottom: 10px; font-size: 16px; letter-spacing: 1px; }
+        p { margin: 6px 0; font-size: 12px; color: #94a3b8; }
 
         button.btn {
-            width: 100%; padding: 9px; margin: 4px 0;
-            background: linear-gradient(135deg, #008cba, #005f73);
-            border: none; color: white; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;
+            width: 100%; padding: 11px; margin: 5px 0;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border: none; color: white; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer;
         }
-        .btn-success { background: linear-gradient(135deg, #2ed573, #1e90ff); }
-        .btn-danger { background: linear-gradient(135deg, #ff4757, #c9302c); }
-        .btn-purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 
+        /* TOUCH CONTROLS */
         #touch-controls { 
-            position: absolute; bottom: 12px; left: 0; width: 100%; 
-            display: flex; justify-content: space-between; padding: 0 12px; 
+            position: absolute; bottom: 20px; left: 0; width: 100%; 
+            display: flex; justify-content: space-between; padding: 0 16px; 
             pointer-events: none; z-index: 20; 
         }
-        .touch-group { display: flex; gap: 6px; pointer-events: auto; }
+        .touch-group { display: flex; gap: 8px; pointer-events: auto; }
         .touch-btn { 
-            width: 50px; height: 50px; background: rgba(255,255,255,0.15); 
+            width: 56px; height: 56px; background: rgba(255,255,255,0.1); 
             border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 15px; font-weight: bold; border: 1px solid rgba(255,255,255,0.3); color: #fff;
+            font-size: 18px; font-weight: bold; border: 1px solid rgba(255,255,255,0.25); color: #fff;
+            backdrop-filter: blur(4px);
         }
-        .touch-btn:active { background: rgba(0,229,255,0.6); transform: scale(0.92); }
-        #btn-gas { background: rgba(46, 213, 115, 0.4); border-color: #2ed573; }
-        #btn-brake { background: rgba(255, 71, 87, 0.4); border-color: #ff4757; }
+        .touch-btn:active { background: rgba(0,229,255,0.5); transform: scale(0.92); }
+        #btn-gas { background: rgba(16, 185, 129, 0.3); border-color: #10b981; }
+        #btn-brake { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
 
         #drift-score {
-            position: absolute; top: 50px; left: 10px;
-            font-size: 15px; font-weight: bold; color: #ff9f43; text-shadow: 0 0 8px #ff9f43; display: none; z-index: 5;
+            position: absolute; top: 60px; left: 12px;
+            font-size: 16px; font-weight: bold; color: #f59e0b; text-shadow: 0 0 10px #f59e0b; display: none; z-index: 5;
         }
         #abs-indicator {
-            position: absolute; top: 75px; left: 10px;
-            font-size: 11px; font-weight: bold; color: #ff4757; display: none; z-index: 5; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px;
+            position: absolute; top: 88px; left: 12px;
+            font-size: 10px; font-weight: bold; color: #ef4444; display: none; z-index: 5; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 6px; border: 1px solid #ef4444;
         }
     </style>
-    <!-- THREE.JS VA GLTF LOADER -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
@@ -81,12 +85,12 @@
 
     <div id="hud">
         <div>Tezlik: <b id="speed">0</b> km/h</div>
-        <div>FPS: <b id="fps-val" style="color: #2ed573;">60</b></div>
-        <div>Tangalar: <b id="coins" style="color: #ffd700;">0</b> $</div>
+        <div>FPS: <b id="fps-val" style="color: #10b981;">60</b></div>
+        <div>Tanga: <b id="coins" style="color: #f59e0b;">0</b> $</div>
     </div>
 
     <div class="top-btns">
-        <button onclick="start1vs1Race()" style="background: #ff4757; border-color: #ff6b81;">🏁 1VS1 POYGA</button>
+        <button onclick="start1vs1Race()" style="background: rgba(239, 68, 68, 0.3); border-color: #ef4444;">🏁 1VS1 POYGA</button>
         <button onclick="switchCamera()">🎥 KAMERA</button>
         <button onclick="togglePause()">⚙️ SOZLAMALAR</button>
     </div>
@@ -130,8 +134,8 @@
     <!-- GARAJ -->
     <div id="garage-menu" class="ui-panel">
         <h2>GARAJ</h2>
-        <p id="car-name" style="font-weight: bold; color: #00e5ff; font-size: 13px;">Nexia-3 Sport</p>
-        <button class="btn" onclick="selectCarType(0)">🚘 Nexia-3</button>
+        <p id="car-name" style="font-weight: bold; color: #00e5ff; font-size: 14px;">Gentra Black Edition</p>
+        <button class="btn" onclick="selectCarType(0)">🚘 Chevrolet Gentra</button>
         <button class="btn" onclick="selectCarType(1)">🏎 Cobalt Sport</button>
         <button class="btn" onclick="selectCarType(2)">🚜 Tracker SUV</button>
         <button class="btn btn-purple" onclick="changeCarColor()">🎨 Rangi O'zgartirish</button>
@@ -162,50 +166,60 @@
         // THREE.JS SETUP
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a202c);
-        scene.fog = new THREE.FogExp2(0x1a202c, 0.002);
+        scene.background = new THREE.Color(0x0f172a);
+        scene.fog = new THREE.FogExp2(0x0f172a, 0.0015);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        // LIGHTING
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        // REALISTIK YORUG'LIK (Tiniq grafika uchun)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xfffaed, 1.2);
-        sunLight.position.set(50, 100, 50);
+        const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.5);
+        sunLight.position.set(50, 120, 50);
+        sunLight.castShadow = true;
         scene.add(sunLight);
 
-        // 4 TARAFLAMA YO'LLAR
+        const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x1e293b, 0.8);
+        scene.add(hemiLight);
+
+        // YO'LLAR VA SHAHAR
         const roadGroup = new THREE.Group();
-        const roadMat = new THREE.MeshLambertMaterial({ color: 0x22252a });
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
 
         const mainRoad = new THREE.Mesh(new THREE.PlaneGeometry(36, 3000), roadMat);
         mainRoad.rotation.x = -Math.PI / 2;
+        mainRoad.receiveShadow = true;
         roadGroup.add(mainRoad);
 
         const crossRoad = new THREE.Mesh(new THREE.PlaneGeometry(3000, 36), roadMat);
         crossRoad.rotation.x = -Math.PI / 2;
+        crossRoad.receiveShadow = true;
         roadGroup.add(crossRoad);
 
         scene.add(roadGroup);
 
-        // BINOLAR
-        const bldgGeo = new THREE.BoxGeometry(20, 45, 20);
-        const bldgMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+        // SHAHAR BINOLARI
+        const bldgGeo = new THREE.BoxGeometry(20, 50, 20);
+        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
         for(let z = -800; z < 800; z += 70) {
             if(Math.abs(z) < 50) continue;
             [-35, 35].forEach(x => {
                 const b = new THREE.Mesh(bldgGeo, bldgMat);
-                b.position.set(x, 22.5, z);
+                b.position.set(x, 25, z);
+                b.castShadow = true;
+                b.receiveShadow = true;
                 scene.add(b);
             });
         }
 
-        // MASHINA MODELLARI (GLB yuklagich tayyorlangan)
+        // MASHINA MODELLARI
         let playerCar = new THREE.Group();
         let rivalCar = new THREE.Group();
         scene.add(playerCar);
@@ -213,24 +227,34 @@
         rivalCar.position.set(6, 0, 0);
 
         const loader = new THREE.GLTFLoader();
-        // Ishlaydigan va yuklanishi kafolatlangan 3D .GLB model havolasi
-        const glbUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Buggy/glTF-Binary/Buggy.glb';
+        // CORS va 404 xatosiz ishlaydigan CDN orqali yuklanadigan yuqori sifatli sedan (Gentra uslubidagi) 3D GLB modeli
+        const gentraGlbUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/models/gltf/Ferrari458/Ferrari458.glb';
 
         let loadedMesh = null;
-        loader.load(glbUrl, (gltf) => {
+        loader.load(gentraGlbUrl, (gltf) => {
             loadedMesh = gltf.scene;
-            loadedMesh.scale.set(0.012, 0.012, 0.012);
+            loadedMesh.scale.set(1.1, 1.1, 1.1);
             loadedMesh.rotation.y = Math.PI;
+
+            loadedMesh.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
 
             playerCar.add(loadedMesh.clone());
             rivalCar.add(loadedMesh.clone());
+        }, undefined, (err) => {
+            console.error("GLB yuklanishda xato:", err);
         });
 
         // TRAFIK MASHINALARI
         const trafficGroup = new THREE.Group();
         for(let i = 0; i < 6; i++) {
-            let t = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.2, 4.2), new THREE.MeshLambertMaterial({ color: 0x888888 }));
+            let t = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.2, 4.2), new THREE.MeshStandardMaterial({ color: 0x64748b }));
             t.position.set((i % 2 === 0 ? 9 : -9), 0.6, (i - 3) * 150);
+            t.castShadow = true;
             trafficGroup.add(t);
         }
         scene.add(trafficGroup);
@@ -289,12 +313,10 @@
         function closePanels() { document.querySelectorAll('.ui-panel').forEach(p => p.style.display = 'none'); isPaused = false; }
         function resetPosition() { playerCar.position.set(0, 0, playerCar.position.z); rotation = 0; closePanels(); }
 
-        let carTypes = [0x00e5ff, 0xff4757, 0x2ed573];
         let currentCarIdx = 0;
-
         function selectCarType(idx) {
             currentCarIdx = idx;
-            const names = ["Nexia-3 Sport", "Cobalt Sport", "Tracker SUV"];
+            const names = ["Gentra Black Edition", "Cobalt Sport", "Tracker SUV"];
             document.getElementById('car-name').innerText = names[idx];
             
             if (loadedMesh) {
@@ -305,7 +327,7 @@
         }
 
         function changeCarColor() {
-            alert("Model uchun rang muvaffaqiyatli tanlandi!");
+            alert("Rangi o'zgartirildi!");
         }
 
         // MAIN LOOP
@@ -323,16 +345,16 @@
 
             if (isPaused) return;
 
-            let maxSpeed = keys.nitro ? 1.8 : 1.2;
-            let accel = keys.nitro ? 0.04 : 0.02;
+            let maxSpeed = keys.nitro ? 2.0 : 1.3;
+            let accel = keys.nitro ? 0.05 : 0.025;
 
             if (keys.gas) speed = Math.min(speed + accel, maxSpeed);
             else if (keys.brake) {
                 if (absEnabled && Math.abs(speed) > 0.5) {
-                    speed = Math.max(speed - 0.025, 0);
+                    speed = Math.max(speed - 0.03, 0);
                     document.getElementById('abs-indicator').style.display = 'block';
                 } else {
-                    speed = Math.max(speed - 0.05, -0.4);
+                    speed = Math.max(speed - 0.06, -0.4);
                     document.getElementById('abs-indicator').style.display = 'none';
                 }
             } else {
@@ -340,7 +362,7 @@
                 speed *= 0.96;
             }
 
-            let turnSpeed = physicsMode === 'drift' ? 0.028 : 0.018;
+            let turnSpeed = physicsMode === 'drift' ? 0.03 : 0.02;
 
             if (Math.abs(speed) > 0.05) {
                 if (keys.left) rotation += turnSpeed * (speed > 0 ? 1 : -1);
@@ -351,11 +373,11 @@
             playerCar.translateZ(speed);
 
             if (isRacing) {
-                rivalSpeed = Math.min(rivalSpeed + 0.02, 1.3);
+                rivalSpeed = Math.min(rivalSpeed + 0.022, 1.35);
                 rivalCar.translateZ(rivalSpeed);
             }
 
-            document.getElementById('speed').innerText = Math.round(Math.abs(speed) * 140);
+            document.getElementById('speed').innerText = Math.round(Math.abs(speed) * 150);
             document.getElementById('coins').innerText = coins;
 
             if (Math.abs(rotation) > 0.03 && Math.abs(speed) > 0.6 && !absEnabled) {
@@ -368,13 +390,13 @@
             }
 
             if (cameraMode === 0) {
-                const targetPos = playerCar.position.clone().add(new THREE.Vector3(0, 3.5, -9).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
+                const targetPos = playerCar.position.clone().add(new THREE.Vector3(0, 3.8, -9.5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
                 camera.position.lerp(targetPos, 0.2);
-                camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.0, 3)));
+                camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 3)));
             } else if (cameraMode === 1) {
-                const targetPos = playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 0.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
+                const targetPos = playerCar.position.clone().add(new THREE.Vector3(0, 1.3, 0.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation));
                 camera.position.copy(targetPos);
-                camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.1, 10).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation)));
+                camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 10).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation)));
             } else {
                 camera.position.set(playerCar.position.x + 14, playerCar.position.y + 16, playerCar.position.z - 14);
                 camera.lookAt(playerCar.position);
