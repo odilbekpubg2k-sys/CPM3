@@ -32,11 +32,16 @@
         .btn-danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); color: #fff; animation: pulseBtn 1s infinite; }
         .btn-voice { background: linear-gradient(135deg, #ff007f, #7f00ff); color: #fff; box-shadow: 0 5px 20px rgba(255,0,127,0.4); }
         .btn-voice.recording { background: #ff0000; animation: pulseBtn 0.8s infinite; }
+        .btn-uno { background: linear-gradient(135deg, #f12711, #f5af19); color: #fff; font-size: 22px; padding: 16px; border-radius: 50px; animation: pulseUno 0.6s infinite alternate; box-shadow: 0 0 30px #f12711; margin: 15px auto; display: block; width: 80%; }
 
         @keyframes pulseBtn {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); box-shadow: 0 0 25px #ff416c; }
             100% { transform: scale(1); }
+        }
+        @keyframes pulseUno {
+            0% { transform: scale(1); box-shadow: 0 0 15px #f12711; }
+            100% { transform: scale(1.1); box-shadow: 0 0 35px #f5af19; }
         }
 
         .user-stats {
@@ -151,7 +156,7 @@
 
     <div id="multiplayer-screen" class="glass-box" style="display:none;">
         <h3>Onlayn Multiplayer & Voice Chat</h3>
-        <p style="font-size:12px; color:#ccc;">Mikrofon orqali do'stlaringiz bilan jonli gaplashing!</p>
+        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali bog'laning!</p>
         
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Yangi xona ochish (Host):</b>
@@ -162,13 +167,13 @@
                 <option value="5">5 kishilik</option>
                 <option value="6">6 kishilik</option>
             </select>
-            <input type="text" id="create-roomcode-input" placeholder="Xona kodi (masalan: 7)">
+            <input type="text" id="create-roomcode-input" placeholder="Xona kodi (masalan: 777)">
             <button class="btn" onclick="createMultiplayerRoom()">Xonani yaratish</button>
         </div>
 
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Xonaga ulanish:</b>
-            <input type="text" id="join-roomcode-input" placeholder="Xona kodini kiriting (masalan: 7)">
+            <input type="text" id="join-roomcode-input" placeholder="Xona kodini kiriting (masalan: 777)">
             <button class="btn btn-secondary" onclick="joinMultiplayerRoom()">Xonaga kirish</button>
         </div>
 
@@ -199,10 +204,6 @@
         <div class="quest-item">
             <div><b>🏆 3 ta o'yinda g'alaba qozon</b><br><small style="color:#00ffcc;">Mukofot: +200 tanga</small></div>
             <span id="quest-wins-status" style="font-weight:bold; color:#ff416c;">0/3</span>
-        </div>
-        <div class="quest-item">
-            <div><b>🃏 10 ta Wild karta tashla</b><br><small style="color:#ffd700;">Mukofot: +250 tanga</small></div>
-            <span id="quest-wilds-status" style="font-weight:bold; color:#ff416c;">0/10</span>
         </div>
         <button class="btn btn-secondary" onclick="backToMenu()" style="margin-top:15px;">Orqaga</button>
     </div>
@@ -250,6 +251,11 @@
         <div id="active-game">
             <div style="font-size: 11px; color: #00ffcc; margin-bottom: 5px;">⚡ Maxsus kartalar: 🚫, ⏭️, +2 va +4!</div>
             
+            <!-- UNO TUGMASI (1 ta karta qolganda chiqadi) -->
+            <div id="uno-container" style="display:none;">
+                <button class="btn-uno" onclick="pressUnoButton()">🚨 UNO! (<span id="uno-countdown">1</span>s)</button>
+            </div>
+
             <div class="table-area">
                 <div class="card back" onclick="playerDraw()" title="Karta olish uchun bosing">
                     <div class="uno-logo">UNO</div>
@@ -289,12 +295,13 @@
         let gameMode = '', channel = null, myId = 'p_' + Math.random().toString(36).substr(2, 9);
         let roomCode = '', isHost = false, maxPlayers = 4, gameState = null, selectedWildIdx = null;
         let playersList = [], audioMuted = false;
-        let dailyClaimed = false, lastLoginDate = '', questWinsCount = 0, questWildsCount = 0;
+        let dailyClaimed = false, lastLoginDate = '', questWinsCount = 0;
         let matchHistory = [];
         const COLORS = ['red', 'green', 'blue', 'yellow'];
 
         let mediaRecorder = null, audioChunks = [], isVoiceActive = false;
-        let bgmAudioCtx = null, bgmOsc = null, isBgmPlaying = false;
+        let bgmAudioCtx = null, isBgmPlaying = false;
+        let unoTimer = null, unoPressed = false;
 
         function loadUserData() {
             let saved = localStorage.getItem('uno_user_profile');
@@ -313,7 +320,6 @@
                     dailyClaimed = data.dailyClaimed || false;
                     lastLoginDate = data.lastLoginDate || '';
                     questWinsCount = data.questWinsCount || 0;
-                    questWildsCount = data.questWildsCount || 0;
                     matchHistory = data.matchHistory || [];
 
                     let today = new Date().toDateString();
@@ -332,7 +338,7 @@
         }
 
         function saveUserData() {
-            let data = { myName, myAvatar, coins, level, wins, totalGames, losses, ownedSkins, activeSkin, dailyClaimed, lastLoginDate, questWinsCount, questWildsCount, matchHistory };
+            let data = { myName, myAvatar, coins, level, wins, totalGames, losses, ownedSkins, activeSkin, dailyClaimed, lastLoginDate, questWinsCount, matchHistory };
             localStorage.setItem('uno_user_profile', JSON.stringify(data));
         }
 
@@ -427,6 +433,7 @@
         function backToMenu() {
             if(channel) channel.close();
             stopVoiceChat();
+            if(unoTimer) clearInterval(unoTimer);
             document.getElementById('game-screen').style.display = 'none';
             document.getElementById('multiplayer-screen').style.display = 'none';
             document.getElementById('shop-screen').style.display = 'none';
@@ -450,7 +457,6 @@
         function openQuests() {
             document.getElementById('menu-screen').style.display = 'none';
             document.getElementById('quest-wins-status').innerText = questWinsCount + '/3';
-            document.getElementById('quest-wilds-status').innerText = questWildsCount + '/10';
             let btn = document.getElementById('daily-claim-btn');
             if (dailyClaimed) { btn.innerText = "Olingan ✅"; btn.style.opacity = "0.6"; }
             else { btn.innerText = "Olish"; btn.style.opacity = "1"; }
@@ -626,6 +632,59 @@
             startBotGame();
         }
 
+        function checkUnoRequirement(handLength) {
+            if(unoTimer) clearInterval(unoTimer);
+            let unoContainer = document.getElementById('uno-container');
+            
+            if (handLength === 1) {
+                unoPressed = false;
+                unoContainer.style.display = 'block';
+                let timeLeft = 1.0;
+                document.getElementById('uno-countdown').innerText = "1";
+                
+                let startTime = Date.now();
+                unoTimer = setInterval(() => {
+                    let passed = (Date.now() - startTime) / 1000;
+                    let left = Math.max(0, (1.0 - passed)).toFixed(1);
+                    document.getElementById('uno-countdown').innerText = left;
+
+                    if (passed >= 1.0) {
+                        clearInterval(unoTimer);
+                        unoContainer.style.display = 'none';
+                        if (!unoPressed) {
+                            // Jarima: 2 ta karta qo'shiladi!
+                            alert("⏰ UNO tugmasini vaqtida bosmadingiz! +2 ta jarima kartasi berildi!");
+                            if(gameMode === 'bot') {
+                                for(let i=0; i<2; i++) {
+                                    if(gameState.deck.length === 0) gameState.deck = createDeck();
+                                    gameState.players[0].hand.push(gameState.deck.pop());
+                                }
+                                renderBotGame();
+                            } else if(gameMode === 'multi' && isHost) {
+                                for(let i=0; i<2; i++) {
+                                    if(gameState.deck.length === 0) gameState.deck = createDeck();
+                                    gameState.handsMap[myId].push(gameState.deck.pop());
+                                }
+                                broadcastMultiState();
+                            }
+                        }
+                    }
+                }, 100);
+            } else {
+                unoContainer.style.display = 'none';
+            }
+        }
+
+        function pressUnoButton() {
+            unoPressed = true;
+            if(unoTimer) clearInterval(unoTimer);
+            document.getElementById('uno-container').style.display = 'none';
+            playSound('win');
+            let bubble = document.getElementById('chat-bubble');
+            bubble.innerText = "🚨 UNO deb baqirdi!";
+            setTimeout(() => { bubble.innerText = ''; }, 2000);
+        }
+
         function renderBotGame() {
             let p = gameState.players[gameState.turnIdx];
             let isMyTurn = !p.isBot;
@@ -649,10 +708,17 @@
                 handEl.appendChild(c);
             });
 
+            if (isMyTurn) {
+                checkUnoRequirement(myHand.length);
+            }
+
             if (!isMyTurn) setTimeout(runBotTurn, 1200);
         }
 
         function playBotCard(playerIdx, cardIdx, chosenColor) {
+            if(unoTimer) clearInterval(unoTimer);
+            document.getElementById('uno-container').style.display = 'none';
+
             let player = gameState.players[playerIdx];
             let card = player.hand[cardIdx];
             let top = gameState.discardPile;
@@ -670,11 +736,6 @@
             let played = player.hand.splice(cardIdx, 1)[0];
             if (chosenColor) played.color = chosenColor;
             else if (player.isBot && played.color === 'wild') played.color = COLORS[Math.floor(Math.random()*COLORS.length)];
-            
-            if (played.color === 'wild' && !player.isBot) {
-                questWildsCount = Math.min(10, questWildsCount + 1);
-                saveUserData();
-            }
 
             gameState.discardPile = played;
             playSound('play');
@@ -712,12 +773,16 @@
 
         function playerDraw() {
             if (gameMode === 'bot' && gameState.turnIdx === 0) {
+                if(unoTimer) clearInterval(unoTimer);
+                document.getElementById('uno-container').style.display = 'none';
                 if (gameState.deck.length === 0) gameState.deck = createDeck();
                 gameState.players[0].hand.push(gameState.deck.pop());
                 playSound('play');
                 gameState.turnIdx = (gameState.turnIdx + gameState.direction + gameState.players.length) % gameState.players.length;
                 renderBotGame();
             } else if (gameMode === 'multi' && gameState.currentTurnId === myId) {
+                if(unoTimer) clearInterval(unoTimer);
+                document.getElementById('uno-container').style.display = 'none';
                 if (isHost) {
                     if (gameState.deck.length === 0) gameState.deck = createDeck();
                     gameState.handsMap[myId].push(gameState.deck.pop());
@@ -905,9 +970,16 @@
                 };
                 handEl.appendChild(c);
             });
+
+            if (isMyTurn) {
+                checkUnoRequirement(myHand.length);
+            }
         }
 
         function sendMultiPlay(idx, color) {
+            if(unoTimer) clearInterval(unoTimer);
+            document.getElementById('uno-container').style.display = 'none';
+
             if (isHost) processMultiPlay(myId, idx, color);
             else channel.postMessage({ type: 'PLAY', id: myId, cardIdx: idx, color: color });
         }
