@@ -6,7 +6,7 @@
     <title>UNO Arena Ultimate Deluxe & Voice Pro</title>
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Firebase SDK (Realtime Multiplayer uchun) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -126,7 +126,7 @@
 
     <div id="nickname-screen" class="glass-box">
         <h2>UNO Arena Ultimate Deluxe</h2>
-        <p>Ismingiz va avatarigizni tanlang[cite: 1]:</p>
+        <p>Ismingiz va avatarigizni tanlang:</p>
         <input type="text" id="nickname-input" placeholder="Ismingiz (Nick)..." maxlength="15">
         <div class="avatar-grid">
             <div class="avatar-opt selected" onclick="selectAvatar('😎', this)">😎</div>
@@ -159,7 +159,7 @@
 
     <div id="multiplayer-screen" class="glass-box" style="display:none;">
         <h3>Onlayn Multiplayer (Telegram Cloud)</h3>
-        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali internetda o'ynang[cite: 1]!</p>
+        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali internetda o'ynang!</p>
         
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Yangi xona ochish (Host):</b>
@@ -283,7 +283,6 @@
     </div>
 
     <script>
-        // Bepul sinov uchun Firebase baza ulanishi (Buni o'zingiznikiga almashtirishingiz mumkin)
         const firebaseConfig = {
             databaseURL: "https://uno-game-online-default-rtdb.firebaseio.com/"
         };
@@ -305,7 +304,6 @@
         let bgmAudioCtx = null, isBgmPlaying = false;
         let unoTimer = null, unoPressed = false;
 
-        // Telegram WebApp integratsiyasi
         if (window.Telegram && window.Telegram.WebApp) {
             const tg = window.Telegram.WebApp;
             tg.expand();
@@ -604,7 +602,7 @@
                         clearInterval(unoTimer);
                         unoContainer.style.display = 'none';
                         if (!unoPressed) {
-                            alert("⏰ UNO tugmasini vaqtida bosmadingiz! +2 ta jarima kartasi berildi[cite: 1]!");
+                            alert("⏰ UNO tugmasini vaqtida bosmadingiz! +2 ta jarima kartasi berildi!");
                             if(gameMode === 'bot') {
                                 for(let i=0; i<2; i++) {
                                     if(gameState.deck.length === 0) gameState.deck = createDeck();
@@ -673,7 +671,7 @@
 
             if (!player.isBot) {
                 let isValid = card.color === 'wild' || card.color === top.color || card.value === top.value || top.color === 'wild';
-                if (!isValid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi[cite: 1]!"); }
+                if (!isValid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi!"); }
                 if (card.color === 'wild' && !chosenColor) {
                     selectedWildIdx = cardIdx;
                     document.getElementById('color-picker').style.display = 'block';
@@ -797,17 +795,35 @@
             roomCode = document.getElementById('join-roomcode-input').value.trim();
             if (!roomCode) { playSound('error'); return alert("Xona kodini kiriting!"); }
 
-            isHost = false; gameMode = 'multi'; setupMultiScreen();
+            isHost = false; gameMode = 'multi';
             dbRef = db.ref('uno_rooms/' + roomCode);
 
             dbRef.once('value', snapshot => {
                 let room = snapshot.val();
-                if (!room) { alert("Bunday xona topilmadi!"); backToMenu(); return; }
+                if (!room) { 
+                    playSound('error');
+                    alert("Bunday xona topilmadi! Avval host xona yaratgani va xona kodi to'g'riligiga ishonch hosil qiling."); 
+                    backToMenu(); 
+                    return; 
+                }
+
+                if (room.status === 'playing') {
+                    playSound('error');
+                    alert("Bu xonada o'yin allaqachon boshlanib ketgan!");
+                    backToMenu();
+                    return;
+                }
+
+                setupMultiScreen();
                 playersList = room.players || [];
                 maxPlayers = room.maxPlayers || 4;
 
                 if (!playersList.find(p => p.id === myId)) {
-                    if (playersList.length >= maxPlayers) { alert("Xona to'la!"); backToMenu(); return; }
+                    if (playersList.length >= maxPlayers) { 
+                        alert("Xona to'la!"); 
+                        backToMenu(); 
+                        return; 
+                    }
                     playersList.push({ id: myId, name: `${myAvatar} ${myName}` });
                     dbRef.child('players').set(playersList);
                 }
@@ -939,14 +955,14 @@
                     if (!isMyTurn) return playSound('error');
                     let top = gameState.discardPile;
                     let valid = card.color === 'wild' || card.color === top.color || card.value === top.value || top.color === 'wild';
-                    if (!valid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi[cite: 1]!"); }
+                    if (!valid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi!"); }
                     if (card.color === 'wild') { selectedWildIdx = idx; document.getElementById('color-picker').style.display = 'block'; return; }
                     sendMultiPlay(idx, null);
                 };
                 handEl.appendChild(c);
             });
 
-            if (isMyTurn) checkUnoRequirement(myHand.length);
+            if (isMyTurn) checkUnoRequirement(myHand.linkLength);
         }
 
         function sendMultiPlay(idx, color) {
@@ -975,8 +991,8 @@
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '+4') {
-                let nextPid = playersList.index[nextIdx] || playersList[nextIdx].id;
                 for(let i=0; i<4; i++) {
+                    if (gameState.deck.length === 0) gameState.deck.pop(); // xavfsizlik uchun
                     if (gameState.deck.length === 0) gameState.deck = createDeck();
                     gameState.handsMap[playersList[nextIdx].id].push(gameState.deck.pop());
                 }
