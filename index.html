@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UNO Arena Ultimate Deluxe & Voice Pro</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Firebase SDK (Realtime Multiplayer uchun) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         body {
             background: radial-gradient(circle at center, #14142b 0%, #06060f 100%);
@@ -30,8 +35,6 @@
         .btn:hover { transform: scale(1.03); }
         .btn-secondary { background: linear-gradient(135deg, #f7971e, #ffd200); color: #000; box-shadow: 0 5px 20px rgba(247,151,30,0.4); }
         .btn-danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); color: #fff; animation: pulseBtn 1s infinite; }
-        .btn-voice { background: linear-gradient(135deg, #ff007f, #7f00ff); color: #fff; box-shadow: 0 5px 20px rgba(255,0,127,0.4); }
-        .btn-voice.recording { background: #ff0000; animation: pulseBtn 0.8s infinite; }
         .btn-uno { background: linear-gradient(135deg, #f12711, #f5af19); color: #fff; font-size: 22px; padding: 16px; border-radius: 50px; animation: pulseUno 0.6s infinite alternate; box-shadow: 0 0 30px #f12711; margin: 15px auto; display: block; width: 80%; }
 
         @keyframes pulseBtn {
@@ -146,7 +149,7 @@
             <button class="btn" style="width: auto; padding: 6px 12px; margin: 0;" id="audio-toggle-btn" onclick="toggleAudio()">🔊 Yoqilgan</button>
         </div>
 
-        <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Voice Chat bilan)</button>
+        <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Do'stlar bilan)</button>
         <button class="btn btn-secondary" onclick="startBotGame()">🤖 Botlar bilan o'ynash</button>
         <button class="btn" style="background: linear-gradient(135deg, #ff007f, #7f00ff);" onclick="startTournament()">🏆 Turnir Rejimi (Cup)</button>
         <button class="btn" style="background: linear-gradient(135deg, #7f00ff, #e100ff);" onclick="openShop()">🛒 Do'kon & Skinlar</button>
@@ -155,8 +158,8 @@
     </div>
 
     <div id="multiplayer-screen" class="glass-box" style="display:none;">
-        <h3>Onlayn Multiplayer & Voice Chat</h3>
-        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali bog'laning[cite: 1]!</p>
+        <h3>Onlayn Multiplayer (Telegram Cloud)</h3>
+        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali internetda o'ynang[cite: 1]!</p>
         
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Yangi xona ochish (Host):</b>
@@ -164,8 +167,6 @@
                 <option value="2">2 kishilik</option>
                 <option value="3">3 kishilik</option>
                 <option value="4" selected>4 kishilik</option>
-                <option value="5">5 kishilik</option>
-                <option value="6">6 kishilik</option>
             </select>
             <input type="text" id="create-roomcode-input" placeholder="Xona kodi (masalan: 777)">
             <button class="btn" onclick="createMultiplayerRoom()">Xonani yaratish</button>
@@ -239,19 +240,12 @@
         <div id="lobby-wait" style="display:none; background:rgba(0,0,0,0.4); padding:15px; border-radius:16px; margin-bottom:10px;">
             <p>Xonadagilar: <span id="connected-count">1</span> / <span id="max-allowed-count">4</span> kishi</p>
             <p id="host-notice" style="font-size:12px; color:#ffeb3b;"></p>
-            
-            <div style="margin: 10px 0;">
-                <button id="voice-btn" class="btn btn-voice" onclick="toggleVoiceChat()">🎤 Ovozli Chatni Yoqish</button>
-                <div id="voice-status" style="font-size: 11px; color: #00ffcc; margin-top: 4px;">Mikrofon o'chirilgan</div>
-            </div>
-
             <button id="start-host-btn" class="btn btn-danger" style="display:none;" onclick="startHostGame()">O'yinni Boshlash (Host)</button>
         </div>
 
         <div id="active-game">
             <div style="font-size: 11px; color: #00ffcc; margin-bottom: 5px;">⚡ Maxsus kartalar: 🚫, ⏭️, +2 va +4!</div>
             
-            <!-- UNO TUGMASI -->
             <div id="uno-container" style="display:none;">
                 <button class="btn-uno" onclick="pressUnoButton()">🚨 UNO! (<span id="uno-countdown">1</span>s)</button>
             </div>
@@ -289,26 +283,43 @@
     </div>
 
     <script>
+        // Bepul sinov uchun Firebase baza ulanishi (Buni o'zingiznikiga almashtirishingiz mumkin)
+        const firebaseConfig = {
+            databaseURL: "https://uno-game-online-default-rtdb.firebaseio.com/"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
         let myName = '', myAvatar = '😎';
         let coins = 500, level = 1, wins = 0, totalGames = 0, losses = 0;
         let activeSkin = '', ownedSkins = [];
-        let gameMode = '', channel = null, myId = 'p_' + Math.random().toString(36).substr(2, 9);
+        let gameMode = '', dbRef = null, myId = 'p_' + Math.random().toString(36).substr(2, 9);
         let roomCode = '', isHost = false, maxPlayers = 4, gameState = null, selectedWildIdx = null;
         let playersList = [], audioMuted = false;
         let dailyClaimed = false, lastLoginDate = '', questWinsCount = 0;
         let matchHistory = [];
         const COLORS = ['red', 'green', 'blue', 'yellow'];
 
-        let mediaRecorder = null, audioChunks = [], isVoiceActive = false;
         let bgmAudioCtx = null, isBgmPlaying = false;
         let unoTimer = null, unoPressed = false;
+
+        // Telegram WebApp integratsiyasi
+        if (window.Telegram && window.Telegram.WebApp) {
+            const tg = window.Telegram.WebApp;
+            tg.expand();
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                myName = tg.initDataUnsafe.user.first_name || 'User';
+            }
+        }
 
         function loadUserData() {
             let saved = localStorage.getItem('uno_user_profile');
             if (saved) {
                 try {
                     let data = JSON.parse(saved);
-                    myName = data.myName || '';
+                    myName = myName || data.myName || 'User';
                     myAvatar = data.myAvatar || '😎';
                     coins = data.coins ?? 500;
                     level = data.level ?? 1;
@@ -334,6 +345,8 @@
                         updateTopUI();
                     }
                 } catch(e) {}
+            } else {
+                if (myName) document.getElementById('nickname-input').value = myName;
             }
         }
 
@@ -431,8 +444,7 @@
         }
 
         function backToMenu() {
-            if(channel) channel.close();
-            stopVoiceChat();
+            if(dbRef) dbRef.off();
             if(unoTimer) clearInterval(unoTimer);
             document.getElementById('game-screen').style.display = 'none';
             document.getElementById('multiplayer-screen').style.display = 'none';
@@ -502,69 +514,9 @@
             let bubble = document.getElementById('chat-bubble');
             bubble.innerText = `${myName}: ${emoji}`;
             setTimeout(() => { if(bubble.innerText.includes(emoji)) bubble.innerText = ''; }, 3000);
-            if(channel && gameMode === 'multi') {
-                channel.postMessage({ type: 'EMOJI', name: myName, emoji: emoji });
+            if(dbRef && gameMode === 'multi') {
+                dbRef.child('chat').set({ name: myName, emoji: emoji, time: Date.now() });
             }
-        }
-
-        async function toggleVoiceChat() {
-            let btn = document.getElementById('voice-btn');
-            let status = document.getElementById('voice-status');
-            
-            if (!isVoiceActive) {
-                try {
-                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-
-                    mediaRecorder.ondataavailable = e => {
-                        audioChunks.push(e.data);
-                        if (channel && gameMode === 'multi') {
-                            let reader = new FileReader();
-                            reader.readAsDataURL(e.data);
-                            reader.onloadend = () => {
-                                channel.postMessage({ type: 'VOICE_DATA', name: myName, audio: reader.result });
-                            }
-                        }
-                    };
-
-                    mediaRecorder.start(500);
-                    isVoiceActive = true;
-                    btn.classList.add('recording');
-                    btn.innerText = "🔴 Ovozli Chatni O'chirish";
-                    status.innerText = "Mikrofon ulangan, gapirishingiz mumkin...";
-                } catch(err) {
-                    alert("Mikrofonga ruxsat berilmadi yoki qurilma topilmadi!");
-                }
-            } else {
-                stopVoiceChat();
-            }
-        }
-
-        function stopVoiceChat() {
-            if (mediaRecorder && isVoiceActive) {
-                mediaRecorder.stop();
-                mediaRecorder.stream.getTracks().forEach(t => t.stop());
-            }
-            isVoiceActive = false;
-            let btn = document.getElementById('voice-btn');
-            let status = document.getElementById('voice-status');
-            if(btn) { btn.classList.remove('recording'); btn.innerText = "🎤 Ovozli Chatni Yoqish"; }
-            if(status) status.innerText = "Mikrofon o'chirilgan";
-        }
-
-        function playIncomingVoice(audioBase64, senderName) {
-            let bubble = document.getElementById('chat-bubble');
-            bubble.innerText = `🎤 ${senderName} ovoz yubordi...`;
-            setTimeout(() => { bubble.innerText = ''; }, 3000);
-
-            let blobBin = atob(audioBase64.split(',')[1]);
-            let array = [];
-            for(let i = 0; i < blobBin.length; i++) { array.push(blobBin.charCodeAt(i)); }
-            let blob = new Blob([new Uint8Array(array)], { type: 'audio/webm' });
-            let audioUrl = URL.createObjectURL(blob);
-            let audio = new Audio(audioUrl);
-            audio.play().catch(e => {});
         }
 
         function createDeck() {
@@ -664,7 +616,7 @@
                                     if(gameState.deck.length === 0) gameState.deck = createDeck();
                                     gameState.handsMap[myId].push(gameState.deck.pop());
                                 }
-                                broadcastMultiState();
+                                syncCloudState();
                             }
                         }
                     }
@@ -707,10 +659,7 @@
                 handEl.appendChild(c);
             });
 
-            if (isMyTurn) {
-                checkUnoRequirement(myHand.length);
-            }
-
+            if (isMyTurn) checkUnoRequirement(myHand.length);
             if (!isMyTurn) setTimeout(runBotTurn, 1200);
         }
 
@@ -723,7 +672,6 @@
             let top = gameState.discardPile;
 
             if (!player.isBot) {
-                // TO'G'RILANDI: Rang yoki Son (qiymat) mos kelsa yoki wild bo'lsa tashlash mumkin[cite: 1]
                 let isValid = card.color === 'wild' || card.color === top.color || card.value === top.value || top.color === 'wild';
                 if (!isValid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi[cite: 1]!"); }
                 if (card.color === 'wild' && !chosenColor) {
@@ -790,9 +738,9 @@
                     let currIdx = playersList.findIndex(p => p.id === myId);
                     gameState.turnIdx = (currIdx + gameState.direction + playersList.length) % playersList.length;
                     gameState.currentTurnId = playersList[gameState.turnIdx].id;
-                    broadcastMultiState();
+                    syncCloudState();
                 } else {
-                    channel.postMessage({ type: 'DRAW', id: myId });
+                    dbRef.child('action').set({ type: 'DRAW', id: myId, time: Date.now() });
                 }
             }
         }
@@ -825,16 +773,23 @@
             playBotCard(0, selectedWildIdx, color);
         }
 
+        // --- CLOUD MULTIPLAYER (Firebase Realtime) ---
         function createMultiplayerRoom() {
             roomCode = document.getElementById('create-roomcode-input').value.trim();
             maxPlayers = parseInt(document.getElementById('max-players-select').value);
             if (!roomCode) { playSound('error'); return alert("Xona kodini kiriting!"); }
             
             isHost = true; gameMode = 'multi'; setupMultiScreen();
-            playersList = [{ id: myId, name: `${myAvatar} ${myName}`, hand: [] }];
-            if(channel) channel.close();
-            channel = new BroadcastChannel('uno_room_' + roomCode);
-            channel.onmessage = (e) => handleMultiMessage(e.data);
+            playersList = [{ id: myId, name: `${myAvatar} ${myName}` }];
+            
+            dbRef = db.ref('uno_rooms/' + roomCode);
+            dbRef.set({
+                status: 'waiting',
+                maxPlayers: maxPlayers,
+                players: playersList
+            });
+
+            listenCloudRoom();
             updateLobbyUI();
         }
 
@@ -843,10 +798,21 @@
             if (!roomCode) { playSound('error'); return alert("Xona kodini kiriting!"); }
 
             isHost = false; gameMode = 'multi'; setupMultiScreen();
-            if(channel) channel.close();
-            channel = new BroadcastChannel('uno_room_' + roomCode);
-            channel.onmessage = (e) => handleMultiMessage(e.data);
-            channel.postMessage({ type: 'JOIN', id: myId, name: `${myAvatar} ${myName}` });
+            dbRef = db.ref('uno_rooms/' + roomCode);
+
+            dbRef.once('value', snapshot => {
+                let room = snapshot.val();
+                if (!room) { alert("Bunday xona topilmadi!"); backToMenu(); return; }
+                playersList = room.players || [];
+                maxPlayers = room.maxPlayers || 4;
+
+                if (!playersList.find(p => p.id === myId)) {
+                    if (playersList.length >= maxPlayers) { alert("Xona to'la!"); backToMenu(); return; }
+                    playersList.push({ id: myId, name: `${myAvatar} ${myName}` });
+                    dbRef.child('players').set(playersList);
+                }
+                listenCloudRoom();
+            });
         }
 
         function setupMultiScreen() {
@@ -856,45 +822,32 @@
             document.getElementById('active-game').style.display = 'none';
         }
 
-        function handleMultiMessage(data) {
-            if (data.type === 'JOIN' && isHost) {
-                if (!playersList.find(p => p.id === data.id) && playersList.length < maxPlayers) {
-                    playersList.push({ id: data.id, name: data.name, hand: [] });
-                    broadcastLobbyState();
-                }
-            } else if (data.type === 'LOBBY_UPDATE' && !isHost) {
-                playersList = data.players; maxPlayers = data.maxPlayers; updateLobbyUI();
-            } else if (data.type === 'START_GAME') {
-                document.getElementById('lobby-wait').style.display = 'none';
-                document.getElementById('active-game').style.display = 'block';
-            } else if (data.type === 'STATE') {
-                gameState = data.state;
-                document.getElementById('lobby-wait').style.display = 'none';
-                document.getElementById('active-game').style.display = 'block';
-                renderMultiGame();
-            } else if (data.type === 'PLAY' && isHost) {
-                processMultiPlay(data.id, data.cardIdx, data.color);
-            } else if (data.type === 'DRAW' && isHost) {
-                if (gameState.deck.length === 0) gameState.deck = createDeck();
-                gameState.handsMap[data.id].push(gameState.deck.pop());
-                playSound('play');
-                let currIdx = playersList.findIndex(p => p.id === data.id);
-                gameState.turnIdx = (currIdx + gameState.direction + playersList.length) % playersList.length;
-                gameState.currentTurnId = playersList[gameState.turnIdx].id;
-                broadcastMultiState();
-            } else if (data.type === 'EMOJI') {
-                let bubble = document.getElementById('chat-bubble');
-                bubble.innerText = `${data.name}: ${data.emoji}`;
-                setTimeout(() => { bubble.innerText = ''; }, 3000);
-            } else if (data.type === 'VOICE_DATA') {
-                playIncomingVoice(data.audio, data.name);
-            }
-        }
+        function listenCloudRoom() {
+            dbRef.on('value', snapshot => {
+                let data = snapshot.val();
+                if (!data) return;
 
-        function broadcastLobbyState() {
-            if (!isHost) return;
-            channel.postMessage({ type: 'LOBBY_UPDATE', players: playersList, maxPlayers: maxPlayers });
-            updateLobbyUI();
+                playersList = data.players || playersList;
+                if (data.status === 'playing') {
+                    document.getElementById('lobby-wait').style.display = 'none';
+                    document.getElementById('active-game').style.display = 'block';
+                    gameState = data.gameState;
+                    renderMultiGame();
+                } else {
+                    updateLobbyUI();
+                }
+
+                if (data.chat) {
+                    let bubble = document.getElementById('chat-bubble');
+                    bubble.innerText = `${data.chat.name}: ${data.chat.emoji}`;
+                    setTimeout(() => { bubble.innerText = ''; }, 3000);
+                }
+
+                if (isHost && data.action) {
+                    handleHostAction(data.action);
+                    dbRef.child('action').remove();
+                }
+            });
         }
 
         function updateLobbyUI() {
@@ -914,46 +867,68 @@
         function startHostGame() {
             if (!isHost) return;
             let deck = createDeck();
-            playersList.forEach(p => { p.hand = []; for(let i=0; i<7; i++) p.hand.push(deck.pop()); });
+            let handsMap = {};
+            playersList.forEach(p => {
+                let hand = [];
+                for(let i=0; i<7; i++) hand.push(deck.pop());
+                handsMap[p.id] = hand;
+            });
+
             let discard = deck.pop();
             while(discard.color === 'wild' || ['+2','🚫','⏭️'].includes(discard.value)) {
                 deck.unshift(discard); discard = deck.pop();
             }
             
             gameState = {
-                players: playersList.map(p => ({ id: p.id, name: p.name, cardCount: p.hand.length })),
-                handsMap: Object.fromEntries(playersList.map(p => [p.id, p.hand])),
-                deck, discardPile: discard, turnIdx: 0, direction: 1, currentTurnId: playersList[0].id
+                players: playersList.map(p => ({ id: p.id, name: p.name })),
+                handsMap: handsMap,
+                deck: deck,
+                discardPile: discard,
+                turnIdx: 0,
+                direction: 1,
+                currentTurnId: playersList[0].id
             };
 
-            channel.postMessage({ type: 'START_GAME' });
-            broadcastMultiState();
+            dbRef.update({ status: 'playing', gameState: gameState });
         }
 
-        function broadcastMultiState() {
+        function syncCloudState() {
             if (!isHost) return;
-            let pub = {
-                players: playersList.map(p => ({ id: p.id, name: p.name, cardCount: gameState.handsMap[p.id].length })),
-                discardPile: gameState.discardPile,
-                currentTurnId: playersList[gameState.turnIdx].id,
-                handsMap: gameState.handsMap
-            };
-            channel.postMessage({ type: 'STATE', state: pub });
-            renderMultiGame();
+            dbRef.child('gameState').set(gameState);
+        }
+
+        function handleHostAction(action) {
+            if (!isHost) return;
+            if (action.type === 'PLAY') {
+                processMultiPlay(action.id, action.cardIdx, action.color);
+            } else if (action.type === 'DRAW') {
+                if (gameState.deck.length === 0) gameState.deck = createDeck();
+                gameState.handsMap[action.id].push(gameState.deck.pop());
+                playSound('play');
+                let currIdx = playersList.findIndex(p => p.id === action.id);
+                gameState.turnIdx = (currIdx + gameState.direction + playersList.length) % playersList.length;
+                gameState.currentTurnId = playersList[gameState.turnIdx].id;
+                syncCloudState();
+            }
         }
 
         function renderMultiGame() {
+            if (!gameState) return;
             let isMyTurn = gameState.currentTurnId === myId;
             document.getElementById('turn-status').innerText = isMyTurn ? "🎯 Sizning navbatingiz!" : "⏳ Boshqa o'yinchi yurmoqda...";
             
-            let infoHtml = gameState.players.map(p => `<div class="player-badge ${p.id === gameState.currentTurnId ? 'active' : ''}"><b>${p.name}</b><br>${p.cardCount} ta</div>`).join('');
+            let infoHtml = gameState.players.map(p => `
+                <div class="player-badge ${p.id === gameState.currentTurnId ? 'active' : ''}">
+                    <b>${p.name}</b><br>${gameState.handsMap[p.id] ? gameState.handsMap[p.id].length : 0} ta
+                </div>
+            `).join('');
             document.getElementById('players-info').innerHTML = infoHtml;
 
             let pile = document.getElementById('discard-pile');
             pile.className = `card ${gameState.discardPile.color} ${activeSkin ? 'skin-' + activeSkin : ''}`;
             pile.innerHTML = `<div class="card-inner">${gameState.discardPile.value}</div>`;
 
-            let myHand = gameState.handsMap[myId] || [];
+            let myHand = (gameState.handsMap && gameState.handsMap[myId]) || [];
             let handEl = document.getElementById('my-hand');
             handEl.innerHTML = '';
             myHand.forEach((card, idx) => {
@@ -963,7 +938,6 @@
                 c.onclick = () => {
                     if (!isMyTurn) return playSound('error');
                     let top = gameState.discardPile;
-                    // TO'G'RILANDI: Rang yoki son mos kelsa ruxsat beriladi[cite: 1]
                     let valid = card.color === 'wild' || card.color === top.color || card.value === top.value || top.color === 'wild';
                     if (!valid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi[cite: 1]!"); }
                     if (card.color === 'wild') { selectedWildIdx = idx; document.getElementById('color-picker').style.display = 'block'; return; }
@@ -972,9 +946,7 @@
                 handEl.appendChild(c);
             });
 
-            if (isMyTurn) {
-                checkUnoRequirement(myHand.length);
-            }
+            if (isMyTurn) checkUnoRequirement(myHand.length);
         }
 
         function sendMultiPlay(idx, color) {
@@ -982,7 +954,7 @@
             document.getElementById('uno-container').style.display = 'none';
 
             if (isHost) processMultiPlay(myId, idx, color);
-            else channel.postMessage({ type: 'PLAY', id: myId, cardIdx: idx, color: color });
+            else dbRef.child('action').set({ type: 'PLAY', id: myId, cardIdx: idx, color: color, time: Date.now() });
         }
 
         function processMultiPlay(pid, idx, color) {
@@ -1003,10 +975,10 @@
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '+4') {
-                let nextPid = playersList[nextIdx].id;
+                let nextPid = playersList.index[nextIdx] || playersList[nextIdx].id;
                 for(let i=0; i<4; i++) {
                     if (gameState.deck.length === 0) gameState.deck = createDeck();
-                    gameState.handsMap[nextPid].push(gameState.deck.pop());
+                    gameState.handsMap[playersList[nextIdx].id].push(gameState.deck.pop());
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '🚫') {
@@ -1025,7 +997,7 @@
 
             gameState.turnIdx = nextIdx;
             gameState.currentTurnId = playersList[nextIdx].id;
-            broadcastMultiState();
+            syncCloudState();
         }
     </script>
 </body>
