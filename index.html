@@ -162,13 +162,13 @@
                 <option value="5">5 kishilik</option>
                 <option value="6">6 kishilik</option>
             </select>
-            <input type="text" id="create-roomcode-input" placeholder="Xona kodi (masalan: 777)">
+            <input type="text" id="create-roomcode-input" placeholder="Xona kodi (masalan: 7)">
             <button class="btn" onclick="createMultiplayerRoom()">Xonani yaratish</button>
         </div>
 
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Xonaga ulanish:</b>
-            <input type="text" id="join-roomcode-input" placeholder="Xona kodini kiriting">
+            <input type="text" id="join-roomcode-input" placeholder="Xona kodini kiriting (masalan: 7)">
             <button class="btn btn-secondary" onclick="joinMultiplayerRoom()">Xonaga kirish</button>
         </div>
 
@@ -569,7 +569,6 @@
                     deck.push({ color, value: i.toString() });
                     deck.push({ color, value: i.toString() });
                 }
-                // Hands Swap olib tashlandi, faqat standart maxsus kartalar qoldi
                 ['+2', '🚫', '⏭️'].forEach(act => {
                     deck.push({ color, value: act });
                     deck.push({ color, value: act });
@@ -718,6 +717,18 @@
                 playSound('play');
                 gameState.turnIdx = (gameState.turnIdx + gameState.direction + gameState.players.length) % gameState.players.length;
                 renderBotGame();
+            } else if (gameMode === 'multi' && gameState.currentTurnId === myId) {
+                if (isHost) {
+                    if (gameState.deck.length === 0) gameState.deck = createDeck();
+                    gameState.handsMap[myId].push(gameState.deck.pop());
+                    playSound('play');
+                    let currIdx = playersList.findIndex(p => p.id === myId);
+                    gameState.turnIdx = (currIdx + gameState.direction + playersList.length) % playersList.length;
+                    gameState.currentTurnId = playersList[gameState.turnIdx].id;
+                    broadcastMultiState();
+                } else {
+                    channel.postMessage({ type: 'DRAW', id: myId });
+                }
             }
         }
 
@@ -738,6 +749,14 @@
 
         function selectColor(color) {
             document.getElementById('color-picker').style.display = 'none';
+            if(gameMode === 'bot') {
+                selectColorBot(color);
+            } else {
+                sendMultiPlay(selectedWildIdx, color);
+            }
+        }
+
+        function selectColorBot(color) {
             playBotCard(0, selectedWildIdx, color);
         }
 
@@ -748,6 +767,7 @@
             
             isHost = true; gameMode = 'multi'; setupMultiScreen();
             playersList = [{ id: myId, name: `${myAvatar} ${myName}`, hand: [] }];
+            if(channel) channel.close();
             channel = new BroadcastChannel('uno_room_' + roomCode);
             channel.onmessage = (e) => handleMultiMessage(e.data);
             updateLobbyUI();
@@ -758,6 +778,7 @@
             if (!roomCode) { playSound('error'); return alert("Xona kodini kiriting!"); }
 
             isHost = false; gameMode = 'multi'; setupMultiScreen();
+            if(channel) channel.close();
             channel = new BroadcastChannel('uno_room_' + roomCode);
             channel.onmessage = (e) => handleMultiMessage(e.data);
             channel.postMessage({ type: 'JOIN', id: myId, name: `${myAvatar} ${myName}` });
@@ -776,7 +797,7 @@
                     playersList.push({ id: data.id, name: data.name, hand: [] });
                     broadcastLobbyState();
                 }
-            } else if (data.type === 'LOBBY_UPDATE') {
+            } else if (data.type === 'LOBBY_UPDATE' && !isHost) {
                 playersList = data.players; maxPlayers = data.maxPlayers; updateLobbyUI();
             } else if (data.type === 'START_GAME') {
                 document.getElementById('lobby-wait').style.display = 'none';
@@ -788,6 +809,14 @@
                 renderMultiGame();
             } else if (data.type === 'PLAY' && isHost) {
                 processMultiPlay(data.id, data.cardIdx, data.color);
+            } else if (data.type === 'DRAW' && isHost) {
+                if (gameState.deck.length === 0) gameState.deck = createDeck();
+                gameState.handsMap[data.id].push(gameState.deck.pop());
+                playSound('play');
+                let currIdx = playersList.findIndex(p => p.id === data.id);
+                gameState.turnIdx = (currIdx + gameState.direction + playersList.length) % playersList.length;
+                gameState.currentTurnId = playersList[gameState.turnIdx].id;
+                broadcastMultiState();
             } else if (data.type === 'EMOJI') {
                 let bubble = document.getElementById('chat-bubble');
                 bubble.innerText = `${data.name}: ${data.emoji}`;
@@ -822,6 +851,9 @@
             let deck = createDeck();
             playersList.forEach(p => { p.hand = []; for(let i=0; i<7; i++) p.hand.push(deck.pop()); });
             let discard = deck.pop();
+            while(discard.color === 'wild' || ['+2','🚫','⏭️'].includes(discard.value)) {
+                deck.unshift(discard); discard = deck.pop();
+            }
             
             gameState = {
                 players: playersList.map(p => ({ id: p.id, name: p.name, cardCount: p.hand.length })),
