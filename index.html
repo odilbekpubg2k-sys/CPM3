@@ -156,7 +156,7 @@
 
     <div id="multiplayer-screen" class="glass-box" style="display:none;">
         <h3>Onlayn Multiplayer & Voice Chat</h3>
-        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali bog'laning!</p>
+        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali bog'laning[cite: 1]!</p>
         
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Yangi xona ochish (Host):</b>
@@ -251,7 +251,7 @@
         <div id="active-game">
             <div style="font-size: 11px; color: #00ffcc; margin-bottom: 5px;">⚡ Maxsus kartalar: 🚫, ⏭️, +2 va +4!</div>
             
-            <!-- UNO TUGMASI (1 ta karta qolganda chiqadi) -->
+            <!-- UNO TUGMASI -->
             <div id="uno-container" style="display:none;">
                 <button class="btn-uno" onclick="pressUnoButton()">🚨 UNO! (<span id="uno-countdown">1</span>s)</button>
             </div>
@@ -652,8 +652,7 @@
                         clearInterval(unoTimer);
                         unoContainer.style.display = 'none';
                         if (!unoPressed) {
-                            // Jarima: 2 ta karta qo'shiladi!
-                            alert("⏰ UNO tugmasini vaqtida bosmadingiz! +2 ta jarima kartasi berildi!");
+                            alert("⏰ UNO tugmasini vaqtida bosmadingiz! +2 ta jarima kartasi berildi[cite: 1]!");
                             if(gameMode === 'bot') {
                                 for(let i=0; i<2; i++) {
                                     if(gameState.deck.length === 0) gameState.deck = createDeck();
@@ -724,8 +723,9 @@
             let top = gameState.discardPile;
 
             if (!player.isBot) {
+                // TO'G'RILANDI: Rang yoki Son (qiymat) mos kelsa yoki wild bo'lsa tashlash mumkin[cite: 1]
                 let isValid = card.color === 'wild' || card.color === top.color || card.value === top.value || top.color === 'wild';
-                if (!isValid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi!"); }
+                if (!isValid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi[cite: 1]!"); }
                 if (card.color === 'wild' && !chosenColor) {
                     selectedWildIdx = cardIdx;
                     document.getElementById('color-picker').style.display = 'block';
@@ -963,8 +963,9 @@
                 c.onclick = () => {
                     if (!isMyTurn) return playSound('error');
                     let top = gameState.discardPile;
+                    // TO'G'RILANDI: Rang yoki son mos kelsa ruxsat beriladi[cite: 1]
                     let valid = card.color === 'wild' || card.color === top.color || card.value === top.value || top.color === 'wild';
-                    if (!valid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi!"); }
+                    if (!valid) { playSound('error'); return alert("Bu kartani tashlab bo'lmaydi[cite: 1]!"); }
                     if (card.color === 'wild') { selectedWildIdx = idx; document.getElementById('color-picker').style.display = 'block'; return; }
                     sendMultiPlay(idx, null);
                 };
