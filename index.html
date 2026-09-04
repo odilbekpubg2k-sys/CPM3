@@ -54,7 +54,7 @@
 
         .card {
             width: 74px; height: 110px; border-radius: 12px; display: inline-flex; flex-direction: column;
-            align-items: center; justify-content: center; font-size: 24px; font-weight: 900; cursor: pointer; margin: 4px;
+            align-items: center; justify-content: center; font-size: 20px; font-weight: 900; cursor: pointer; margin: 4px;
             box-shadow: 0 8px 22px rgba(0,0,0,0.7); border: 3.5px solid #fff; position: relative; transition: transform 0.2s, box-shadow 0.2s;
             flex-shrink: 0;
         }
@@ -65,7 +65,7 @@
         .card-inner {
             width: 48px; height: 80px; border: 2.5px solid #fff; border-radius: 50% / 40%;
             display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.18);
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.25); text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.25); text-shadow: 0 2px 4px rgba(0,0,0,0.5); text-align: center; font-size: 16px;
         }
         .card.red { background: #e53935; color: #fff; }
         .card.green { background: #43a047; color: #fff; }
@@ -120,6 +120,8 @@
         .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
         .badge-box { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 10px; text-align: center; font-size: 11px; }
         .badge-box.unlocked { border-color: #ffd700; background: rgba(255,215,0,0.1); color: #ffd700; }
+        
+        .voice-box { background: rgba(0, 255, 200, 0.1); border: 1px solid #00ffcc; border-radius: 14px; padding: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -149,17 +151,17 @@
             <button class="btn" style="width: auto; padding: 6px 12px; margin: 0;" id="audio-toggle-btn" onclick="toggleAudio()">🔊 Yoqilgan</button>
         </div>
 
-        <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Do'stlar bilan)</button>
+        <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Ovozli Chat bilan)</button>
         <button class="btn btn-secondary" onclick="startBotGame()">🤖 Botlar bilan o'ynash</button>
         <button class="btn" style="background: linear-gradient(135deg, #ff007f, #7f00ff);" onclick="startTournament()">🏆 Turnir Rejimi (Cup)</button>
         <button class="btn" style="background: linear-gradient(135deg, #7f00ff, #e100ff);" onclick="openShop()">🛒 Do'kon & Skinlar</button>
         <button class="btn" style="background: linear-gradient(135deg, #ff9966, #ff5e62);" onclick="openQuests()">🎁 Kundalik Bonus & Vazifalar</button>
-        <button class="btn" style="background: linear-gradient(135deg, #00c6ff, #0072ff);" onclick="openStats()">📊 Statistika, Nishonlar & Tarix</button>
+        <button class="btn" style="background: linear-gradient(135deg, #00c6ff, #0072ff);" onclick="openStats()">📊 Statistika & Liderlar</button>
     </div>
 
     <div id="multiplayer-screen" class="glass-box" style="display:none;">
-        <h3>Onlayn Multiplayer (Telegram Cloud)</h3>
-        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan xona kodi orqali internetda o'ynang!</p>
+        <h3>Onlayn Multiplayer & Ovozli Chat</h3>
+        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan birga gaplashing va o'ynang!</p>
         
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Yangi xona ochish (Host):</b>
@@ -210,7 +212,7 @@
     </div>
 
     <div id="stats-screen" class="glass-box" style="display:none; max-width: 520px;">
-        <h3>Statistika, Nishonlar & Tarix</h3>
+        <h3>Statistika & Liderlar</h3>
         <div class="stat-box"><span>Jami o'yinlar:</span> <b id="stat-total">0</b></div>
         <div class="stat-box"><span>G'alabalar:</span> <b id="stat-wins" style="color:#00ffcc;">0</b></div>
         <div class="stat-box"><span>Mag'lubiyatlar:</span> <b id="stat-losses" style="color:#ff416c;">0</b></div>
@@ -234,6 +236,14 @@
 
     <div id="game-screen" class="glass-box" style="display:none; max-width: 500px;">
         <h3 id="turn-status">O'yin jarayoni...</h3>
+        
+        <!-- Ovozli Chat paneli -->
+        <div id="voice-panel" class="voice-box" style="display:none;">
+            <span style="font-size: 13px;">🎙️ Ovozli Chat: <b id="voice-status" style="color:#ff416c;">O'chirilgan</b></span>
+            <button class="btn" style="width: auto; padding: 6px 12px; margin: 0;" onclick="toggleVoiceChat()">Mikrofonni Yoqish</button>
+        </div>
+        <audio id="remote-audio" autoplay></audio>
+
         <div class="timer-container"><div id="timer-bar"></div></div>
         <div id="players-info" class="players-panel"></div>
 
@@ -244,7 +254,7 @@
         </div>
 
         <div id="active-game">
-            <div style="font-size: 11px; color: #00ffcc; margin-bottom: 5px;">⚡ Maxsus kartalar: 🚫, ⏭️, +2 va +4!</div>
+            <div style="font-size: 11px; color: #00ffcc; margin-bottom: 5px;">⚡ Maxsus kartalar: 🚫, ⏭️, +2, +4 va 🔀 Trade Hands!</div>
             
             <div id="uno-container" style="display:none;">
                 <button class="btn-uno" onclick="pressUnoButton()">🚨 UNO! (<span id="uno-countdown">1</span>s)</button>
@@ -303,6 +313,11 @@
 
         let bgmAudioCtx = null, isBgmPlaying = false;
         let unoTimer = null, unoPressed = false;
+        
+        // Voice Chat variables
+        let localStream = null, peerConnection = null;
+        let voiceActive = false;
+        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         if (window.Telegram && window.Telegram.WebApp) {
             const tg = window.Telegram.WebApp;
@@ -444,6 +459,7 @@
         function backToMenu() {
             if(dbRef) dbRef.off();
             if(unoTimer) clearInterval(unoTimer);
+            stopVoiceChat();
             document.getElementById('game-screen').style.display = 'none';
             document.getElementById('multiplayer-screen').style.display = 'none';
             document.getElementById('shop-screen').style.display = 'none';
@@ -533,6 +549,7 @@
             for (let i = 0; i < 4; i++) {
                 deck.push({ color: 'wild', value: '🌈' });
                 deck.push({ color: 'wild', value: '+4' });
+                deck.push({ color: 'wild', value: '🔀' }); // Trade Hands maxsus kartasi
             }
             return deck.sort(() => Math.random() - 0.5);
         }
@@ -558,6 +575,7 @@
             document.getElementById('menu-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             document.getElementById('lobby-wait').style.display = 'none';
+            document.getElementById('voice-panel').style.display = 'none';
             document.getElementById('active-game').style.display = 'block';
 
             playersList = [
@@ -700,6 +718,13 @@
                     gameState.players[nextTurnIdx].hand.push(gameState.deck.pop());
                 }
                 nextTurnIdx = (nextTurnIdx + gameState.direction + gameState.players.length) % gameState.players.length;
+            } else if (played.value === '🔀') { // Trade hands: hamma o'yinchilar kartalarini almashtiradi
+                let temp = gameState.players[0].hand;
+                for(let i=0; i<gameState.players.length-1; i++) {
+                    gameState.players[i].hand = gameState.players[i+1].hand;
+                }
+                gameState.players[gameState.players.length-1].hand = temp;
+                alert("🔀 Trade Hands! Barcha o'yinchilarning kartalari almashtirildi!");
             } else if (played.value === '🚫') {
                 nextTurnIdx = (nextTurnIdx + gameState.direction + gameState.players.length) % gameState.players.length;
             } else if (played.value === '⏭️') {
@@ -771,6 +796,85 @@
             playBotCard(0, selectedWildIdx, color);
         }
 
+        // --- VOICE CHAT (WebRTC) LOGIC ---
+        function toggleVoiceChat() {
+            if (!voiceActive) {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
+                    localStream = stream;
+                    voiceActive = true;
+                    document.getElementById('voice-status').innerText = "Yoqilgan 🎙️";
+                    document.getElementById('voice-status').style.color = "#00ffcc";
+                    
+                    // WebRTC signal ulanishi
+                    setupWebRTC();
+                }).catch(err => {
+                    alert("Mikrofondan foydalanishga ruxsat berilmadi!");
+                });
+            } else {
+                stopVoiceChat();
+            }
+        }
+
+        function stopVoiceChat() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            voiceActive = false;
+            let status = document.getElementById('voice-status');
+            if(status) {
+                status.innerText = "O'chirilgan";
+                status.style.color = "#ff416c";
+            }
+        }
+
+        function setupWebRTC() {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            if (localStream) {
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            }
+
+            peerConnection.ontrack = event => {
+                document.getElementById('remote-audio').srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate && dbRef) {
+                    dbRef.child('webrtc/' + (isHost ? 'host' : 'client') + '/candidate').set(JSON.stringify(event.candidate));
+                }
+            };
+
+            if (isHost) {
+                peerConnection.createOffer().then(offer => {
+                    peerConnection.setLocalDescription(offer);
+                    dbRef.child('webrtc/offer').set(JSON.stringify(offer));
+                });
+            }
+
+            dbRef.child('webrtc').on('value', async snapshot => {
+                let data = snapshot.val();
+                if (!data) return;
+                try {
+                    if (!isHost && data.offer && !peerConnection.remoteDescription) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.offer)));
+                        let answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        dbRef.child('webrtc/answer').set(JSON.stringify(answer));
+                    } else if (isHost && data.answer && !peerConnection.remoteDescription) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.answer)));
+                    }
+                    let candData = data[isHost ? 'client' : 'host']?.candidate;
+                    if (candData) {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(candData)));
+                    }
+                } catch(e) {}
+            });
+        }
+
         // --- CLOUD MULTIPLAYER (Firebase Realtime) ---
         function createMultiplayerRoom() {
             roomCode = document.getElementById('create-roomcode-input').value.trim();
@@ -835,6 +939,7 @@
             document.getElementById('multiplayer-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             document.getElementById('lobby-wait').style.display = 'block';
+            document.getElementById('voice-panel').style.display = 'flex';
             document.getElementById('active-game').style.display = 'none';
         }
 
@@ -962,7 +1067,7 @@
                 handEl.appendChild(c);
             });
 
-            if (isMyTurn) checkUnoRequirement(myHand.linkLength);
+            if (isMyTurn) checkUnoRequirement(myHand.length);
         }
 
         function sendMultiPlay(idx, color) {
@@ -992,11 +1097,17 @@
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '+4') {
                 for(let i=0; i<4; i++) {
-                    if (gameState.deck.length === 0) gameState.deck.pop(); // xavfsizlik uchun
                     if (gameState.deck.length === 0) gameState.deck = createDeck();
                     gameState.handsMap[playersList[nextIdx].id].push(gameState.deck.pop());
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
+            } else if (card.value === '🔀') {
+                let pIds = playersList.map(p => p.id);
+                let firstHand = gameState.handsMap[pIds[0]];
+                for(let i=0; i<pIds.length-1; i++) {
+                    gameState.handsMap[pIds[i]] = gameState.handsMap[pIds[i+1]];
+                }
+                gameState.handsMap[pIds[pIds.length-1]] = firstHand;
             } else if (card.value === '🚫') {
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '⏭️') {
