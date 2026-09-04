@@ -153,8 +153,20 @@
         </div>
 
         <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Ovozli Chat & Link)</button>
-        <button class="btn btn-secondary" onclick="startBotGame()">🤖 Botlar bilan o'ynash</button>
-        <button class="btn" style="background: linear-gradient(135deg, #ff007f, #7f00ff);" onclick="startTournament()">🏆 Turnir Rejimi (Cup)</button>
+        
+        <!-- Botlar bilan o'ynash uchun sozlama paneli -->
+        <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:14px; margin-top:10px;">
+            <label style="font-size:13px; color:#ffeb3b; display:block; margin-bottom:5px;">🤖 Nechta bot bilan o'ynash?</label>
+            <select id="bot-count-select">
+                <option value="1">1 ta bot</option>
+                <option value="2">2 ta bot</option>
+                <option value="3">3 ta bot</option>
+                <option value="4" selected>4 ta bot</option>
+            </select>
+            <button class="btn btn-secondary" onclick="startBotGame()" style="margin-top:5px; width:100%;">Botlar bilan boshlash</button>
+        </div>
+
+        <button class="btn" style="background: linear-gradient(135deg, #ff007f, #7f00ff); margin-top:10px;" onclick="startTournament()">🏆 Turnir Rejimi (Cup)</button>
         <button class="btn" style="background: linear-gradient(135deg, #7f00ff, #e100ff);" onclick="openShop()">🛒 Do'kon & Skinlar</button>
         <button class="btn" style="background: linear-gradient(135deg, #ff9966, #ff5e62);" onclick="openQuests()">🎁 Kundalik Bonus & Vazifalar</button>
         <button class="btn" style="background: linear-gradient(135deg, #00c6ff, #0072ff);" onclick="openStats()">📊 Statistika & Liderlar</button>
@@ -251,7 +263,6 @@
         <div id="lobby-wait" style="display:none; background:rgba(0,0,0,0.4); padding:15px; border-radius:16px; margin-bottom:10px;">
             <p>Xonadagilar: <span id="connected-count">1</span> / <span id="max-allowed-count">4</span> kishi</p>
             <p id="host-notice" style="font-size:12px; color:#ffeb3b;"></p>
-            <!-- Do'stlarga yuborish tugmasi -->
             <button id="share-link-btn" class="btn btn-share" style="display:none; margin-bottom: 10px;" onclick="shareRoomToFriends()">📤 Do'stlarga yuborish (Link)</button>
             <button id="start-host-btn" class="btn btn-danger" style="display:none;" onclick="startHostGame()">O'yinni Boshlash (Host)</button>
         </div>
@@ -330,7 +341,6 @@
             }
         }
 
-        // Telegram mini app startapp yoki URL orqali xonaga kirishni avtomatik ushlash
         window.onload = () => {
             loadUserData();
             
@@ -623,6 +633,8 @@
             if (coins < 20) { alert("Tangangiz yetarli emas (20 tanga kerak)!"); return; }
             coins -= 20; updateTopUI(); gameMode = 'bot';
 
+            let botCount = parseInt(document.getElementById('bot-count-select').value);
+
             document.getElementById('menu-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             document.getElementById('lobby-wait').style.display = 'none';
@@ -630,10 +642,13 @@
             document.getElementById('active-game').style.display = 'block';
 
             playersList = [
-                { id: myId, name: `${myAvatar} ${myName}`, hand: [], isBot: false },
-                { id: 'bot1', name: '🤖 Bot 1', hand: [], isBot: true },
-                { id: 'bot2', name: '🦊 Bot 2', hand: [], isBot: true }
+                { id: myId, name: `${myAvatar} ${myName}`, hand: [], isBot: false }
             ];
+
+            let botNames = ['Bot 1', 'Bot 2', 'Bot 3', 'Bot 4'];
+            for(let i = 0; i < botCount; i++) {
+                playersList.push({ id: 'bot' + (i+1), name: `🤖 ${botNames[i]}`, hand: [], isBot: true });
+            }
 
             let deck = createDeck();
             playersList.forEach(p => { for (let i = 0; i < 7; i++) p.hand.push(deck.pop()); });
@@ -847,7 +862,6 @@
             playBotCard(0, selectedWildIdx, color);
         }
 
-        // --- VOICE CHAT (WebRTC) LOGIC ---
         function toggleVoiceChat() {
             if (!voiceActive) {
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
@@ -924,7 +938,6 @@
             });
         }
 
-        // --- CLOUD MULTIPLAYER (Firebase Realtime) & LINK SHARING ---
         function createMultiplayerRoom() {
             roomCode = document.getElementById('create-roomcode-input').value.trim().toUpperCase();
             maxPlayers = parseInt(document.getElementById('max-players-select').value);
@@ -992,10 +1005,9 @@
             document.getElementById('active-game').style.display = 'none';
         }
 
-        // --- TUZATILGAN JOY: Telegram Bot WebApp Link formati ---
         function shareRoomToFriends() {
-            let botUsername = "UNOUZGAMEbot"; // <-- O'zingizning botingiz username'i bilan almashtiring
-            let webAppShortName = "app";      // <-- BotFather'da yaratilgan WebApp short name
+            let botUsername = "UNOUZGAMEbot"; 
+            let webAppShortName = "app";      
             
             let shareUrl = `https://t.me/${botUsername}/${webAppShortName}?startapp=room=${roomCode}`;
             let text = `🎮 Meni UNO o'yiniga qo'shiling va ovozli chatda gaplashib o'ynaylik! Xona kodi: ${roomCode}`;
