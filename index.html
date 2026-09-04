@@ -251,7 +251,7 @@
         <div id="lobby-wait" style="display:none; background:rgba(0,0,0,0.4); padding:15px; border-radius:16px; margin-bottom:10px;">
             <p>Xonadagilar: <span id="connected-count">1</span> / <span id="max-allowed-count">4</span> kishi</p>
             <p id="host-notice" style="font-size:12px; color:#ffeb3b;"></p>
-            <!-- Do'stlarga yuborish tugmasi (Telegram orqali to'g'ridan-to'g'ri do'stini tanlab yuboradi) -->
+            <!-- Do'stlarga yuborish tugmasi -->
             <button id="share-link-btn" class="btn btn-share" style="display:none; margin-bottom: 10px;" onclick="shareRoomToFriends()">📤 Do'stlarga yuborish (Link)</button>
             <button id="start-host-btn" class="btn btn-danger" style="display:none;" onclick="startHostGame()">O'yinni Boshlash (Host)</button>
         </div>
@@ -330,26 +330,35 @@
             }
         }
 
-        // URL orqali avtomatik xonaga qo'shilishni tekshirish (?room=KOD)
+        // Telegram mini app startapp yoki URL orqali xonaga kirishni avtomatik ushlash
         window.onload = () => {
             loadUserData();
+            
+            let targetRoom = null;
             const urlParams = new URLSearchParams(window.location.search);
-            const targetRoom = urlParams.get('room');
+            targetRoom = urlParams.get('room');
+
+            if (!targetRoom && tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+                let startParam = tg.initDataUnsafe.start_param;
+                if (startParam.startsWith('room=')) {
+                    targetRoom = startParam.split('=')[1];
+                }
+            }
+
             if (targetRoom) {
                 document.getElementById('nickname-screen').style.display = 'none';
                 document.getElementById('menu-screen').style.display = 'none';
-                roomCode = targetRoom;
+                roomCode = targetRoom.trim().toUpperCase();
                 isHost = false;
                 gameMode = 'multi';
                 
-                // Ism kiritilmagan bo'lsa standart ism beramiz
                 if (!myName) myName = 'O‘yinchi_' + Math.floor(Math.random()*1000);
                 
                 dbRef = db.ref('uno_rooms/' + roomCode);
                 dbRef.once('value', snapshot => {
                     let room = snapshot.val();
                     if (!room) {
-                        alert("Xona topilmadi yoki eskirgan!");
+                        alert("❌ Xona topilmadi yoki tugatilgan!");
                         backToMenu();
                         return;
                     }
@@ -359,7 +368,7 @@
 
                     if (!playersList.find(p => p.id === myId)) {
                         if (playersList.length >= maxPlayers) {
-                            alert("Xona to'la!");
+                            alert("❌ Xona allaqachon to'la!");
                             backToMenu();
                             return;
                         }
@@ -393,7 +402,7 @@
                     let today = new Date().toDateString();
                     if (lastLoginDate !== today) { dailyClaimed = false; lastLoginDate = today; }
 
-                    if (myName && !window.location.search.includes('room=')) {
+                    if (myName && !window.location.search.includes('room=') && (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.start_param)) {
                         document.getElementById('nickname-input').value = myName;
                         document.getElementById('welcome-name').innerText = myName;
                         document.getElementById('my-avatar').innerText = myAvatar;
@@ -917,7 +926,7 @@
 
         // --- CLOUD MULTIPLAYER (Firebase Realtime) & LINK SHARING ---
         function createMultiplayerRoom() {
-            roomCode = document.getElementById('create-roomcode-input').value.trim();
+            roomCode = document.getElementById('create-roomcode-input').value.trim().toUpperCase();
             maxPlayers = parseInt(document.getElementById('max-players-select').value);
             if (!roomCode) { playSound('error'); return alert("Xona kodini kiriting!"); }
             
@@ -936,7 +945,7 @@
         }
 
         function joinMultiplayerRoom() {
-            roomCode = document.getElementById('join-roomcode-input').value.trim();
+            roomCode = document.getElementById('join-roomcode-input').value.trim().toUpperCase();
             if (!roomCode) { playSound('error'); return alert("Xona kodini kiriting!"); }
 
             isHost = false; gameMode = 'multi';
@@ -946,14 +955,14 @@
                 let room = snapshot.val();
                 if (!room) { 
                     playSound('error');
-                    alert("Bunday xona topilmadi!"); 
+                    alert("❌ Bunday xona topilmadi! Kodni tekshirib qaytadan kiriting."); 
                     backToMenu(); 
                     return; 
                 }
 
                 if (room.status === 'playing') {
                     playSound('error');
-                    alert("Bu xonada o'yin allaqachon boshlanib ketgan!");
+                    alert("❌ Bu xonada o'yin allaqachon boshlanib ketgan!");
                     backToMenu();
                     return;
                 }
@@ -964,7 +973,7 @@
 
                 if (!playersList.find(p => p.id === myId)) {
                     if (playersList.length >= maxPlayers) { 
-                        alert("Xona to'la!"); 
+                        alert("❌ Xona to'la!"); 
                         backToMenu(); 
                         return; 
                     }
@@ -983,18 +992,16 @@
             document.getElementById('active-game').style.display = 'none';
         }
 
-        // Telegram orqali do'stlariga shaxsiy chatiga yuborish tugmasi
+        // Telegram bot orqali to'g'ridan-to'g'ri do'stiga yuborish
         function shareRoomToFriends() {
-            let currentUrl = window.location.href.split('?')[0];
-            let shareUrl = `${currentUrl}?room=${roomCode}`;
+            let botUsername = "UNOUZGAMEbot"; 
+            let shareUrl = `https://t.me/${botUsername}/app?startapp=room=${roomCode}`;
             let text = `🎮 Meni UNO o'yiniga qo'shiling va ovozli chatda gaplashib o'ynaylik! Xona kodi: ${roomCode}`;
             
             if (tg && tg.openTelegramLink) {
-                // Telegram orqali to'g'ridan-to'g'ri do'stiga yuborish oynasini ochadi
                 let telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
                 tg.openTelegramLink(telegramShareUrl);
             } else {
-                // Brauzerda bo'lsa nusxalab oladi
                 navigator.clipboard.writeText(shareUrl).then(() => {
                     alert("📋 O'yin havolasi nusxalandi! Do'stlaringizga yuboring.");
                 });
@@ -1158,9 +1165,10 @@
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '+4') {
+                let nextPid = playersList[nextIdx].id;
                 for(let i=0; i<4; i++) {
-                    if (gameState.deck.length === 0) gameState.deck = `createDeck()`;
-                    gameState.handsMap[playersList[nextIdx].id].push(gameState.deck.pop());
+                    if (gameState.deck.length === 0) gameState.deck = createDeck();
+                    gameState.handsMap[nextPid].push(gameState.deck.pop());
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '🔀') {
