@@ -35,6 +35,7 @@
         .btn:hover { transform: scale(1.03); }
         .btn-secondary { background: linear-gradient(135deg, #f7971e, #ffd200); color: #000; box-shadow: 0 5px 20px rgba(247,151,30,0.4); }
         .btn-danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); color: #fff; animation: pulseBtn 1s infinite; }
+        .btn-share { background: linear-gradient(135deg, #00c6ff, #0072ff); color: #fff; box-shadow: 0 5px 20px rgba(0,198,255,0.4); }
         .btn-uno { background: linear-gradient(135deg, #f12711, #f5af19); color: #fff; font-size: 22px; padding: 16px; border-radius: 50px; animation: pulseUno 0.6s infinite alternate; box-shadow: 0 0 30px #f12711; margin: 15px auto; display: block; width: 80%; }
 
         @keyframes pulseBtn {
@@ -151,7 +152,7 @@
             <button class="btn" style="width: auto; padding: 6px 12px; margin: 0;" id="audio-toggle-btn" onclick="toggleAudio()">🔊 Yoqilgan</button>
         </div>
 
-        <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Ovozli Chat bilan)</button>
+        <button class="btn" onclick="showMultiplayerLobby()">🌐 Onlayn Xona (Ovozli Chat & Link)</button>
         <button class="btn btn-secondary" onclick="startBotGame()">🤖 Botlar bilan o'ynash</button>
         <button class="btn" style="background: linear-gradient(135deg, #ff007f, #7f00ff);" onclick="startTournament()">🏆 Turnir Rejimi (Cup)</button>
         <button class="btn" style="background: linear-gradient(135deg, #7f00ff, #e100ff);" onclick="openShop()">🛒 Do'kon & Skinlar</button>
@@ -160,8 +161,8 @@
     </div>
 
     <div id="multiplayer-screen" class="glass-box" style="display:none;">
-        <h3>Onlayn Multiplayer & Ovozli Chat</h3>
-        <p style="font-size:12px; color:#ccc;">Do'stlaringiz bilan birga gaplashing va o'ynang!</p>
+        <h3>Onlayn Multiplayer</h3>
+        <p style="font-size:12px; color:#ccc;">Do'stlaringizga havola yuboring yoki kod bilan kiring!</p>
         
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
             <b>Yangi xona ochish (Host):</b>
@@ -175,8 +176,8 @@
         </div>
 
         <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; margin:10px 0;">
-            <b>Xonaga ulanish:</b>
-            <input type="text" id="join-roomcode-input" placeholder="Xona kodini kiriting (masalan: 777)">
+            <b>Xonaga ulanish (Kod orqali):</b>
+            <input type="text" id="join-roomcode-input" placeholder="Xona kodini kiriting">
             <button class="btn btn-secondary" onclick="joinMultiplayerRoom()">Xonaga kirish</button>
         </div>
 
@@ -250,6 +251,8 @@
         <div id="lobby-wait" style="display:none; background:rgba(0,0,0,0.4); padding:15px; border-radius:16px; margin-bottom:10px;">
             <p>Xonadagilar: <span id="connected-count">1</span> / <span id="max-allowed-count">4</span> kishi</p>
             <p id="host-notice" style="font-size:12px; color:#ffeb3b;"></p>
+            <!-- Do'stlarga yuborish tugmasi (Telegram orqali to'g'ridan-to'g'ri do'stini tanlab yuboradi) -->
+            <button id="share-link-btn" class="btn btn-share" style="display:none; margin-bottom: 10px;" onclick="shareRoomToFriends()">📤 Do'stlarga yuborish (Link)</button>
             <button id="start-host-btn" class="btn btn-danger" style="display:none;" onclick="startHostGame()">O'yinni Boshlash (Host)</button>
         </div>
 
@@ -314,18 +317,59 @@
         let bgmAudioCtx = null, isBgmPlaying = false;
         let unoTimer = null, unoPressed = false;
         
-        // Voice Chat variables
         let localStream = null, peerConnection = null;
         let voiceActive = false;
         const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-        if (window.Telegram && window.Telegram.WebApp) {
-            const tg = window.Telegram.WebApp;
+        let tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+        if (tg) {
             tg.expand();
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 myName = tg.initDataUnsafe.user.first_name || 'User';
             }
         }
+
+        // URL orqali avtomatik xonaga qo'shilishni tekshirish (?room=KOD)
+        window.onload = () => {
+            loadUserData();
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetRoom = urlParams.get('room');
+            if (targetRoom) {
+                document.getElementById('nickname-screen').style.display = 'none';
+                document.getElementById('menu-screen').style.display = 'none';
+                roomCode = targetRoom;
+                isHost = false;
+                gameMode = 'multi';
+                
+                // Ism kiritilmagan bo'lsa standart ism beramiz
+                if (!myName) myName = 'O‘yinchi_' + Math.floor(Math.random()*1000);
+                
+                dbRef = db.ref('uno_rooms/' + roomCode);
+                dbRef.once('value', snapshot => {
+                    let room = snapshot.val();
+                    if (!room) {
+                        alert("Xona topilmadi yoki eskirgan!");
+                        backToMenu();
+                        return;
+                    }
+                    setupMultiScreen();
+                    playersList = room.players || [];
+                    maxPlayers = room.maxPlayers || 4;
+
+                    if (!playersList.find(p => p.id === myId)) {
+                        if (playersList.length >= maxPlayers) {
+                            alert("Xona to'la!");
+                            backToMenu();
+                            return;
+                        }
+                        playersList.push({ id: myId, name: `${myAvatar} ${myName}` });
+                        dbRef.child('players').set(playersList);
+                    }
+                    listenCloudRoom();
+                });
+            }
+        };
 
         function loadUserData() {
             let saved = localStorage.getItem('uno_user_profile');
@@ -349,7 +393,7 @@
                     let today = new Date().toDateString();
                     if (lastLoginDate !== today) { dailyClaimed = false; lastLoginDate = today; }
 
-                    if (myName) {
+                    if (myName && !window.location.search.includes('room=')) {
                         document.getElementById('nickname-input').value = myName;
                         document.getElementById('welcome-name').innerText = myName;
                         document.getElementById('my-avatar').innerText = myAvatar;
@@ -375,8 +419,6 @@
             document.getElementById('my-avatar').innerText = myAvatar;
             saveUserData();
         }
-
-        window.onload = loadUserData;
 
         function selectAvatar(av, el) {
             document.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('selected'));
@@ -549,7 +591,7 @@
             for (let i = 0; i < 4; i++) {
                 deck.push({ color: 'wild', value: '🌈' });
                 deck.push({ color: 'wild', value: '+4' });
-                deck.push({ color: 'wild', value: '🔀' }); // Trade Hands maxsus kartasi
+                deck.push({ color: 'wild', value: '🔀' });
             }
             return deck.sort(() => Math.random() - 0.5);
         }
@@ -718,7 +760,7 @@
                     gameState.players[nextTurnIdx].hand.push(gameState.deck.pop());
                 }
                 nextTurnIdx = (nextTurnIdx + gameState.direction + gameState.players.length) % gameState.players.length;
-            } else if (played.value === '🔀') { // Trade hands: hamma o'yinchilar kartalarini almashtiradi
+            } else if (played.value === '🔀') {
                 let temp = gameState.players[0].hand;
                 for(let i=0; i<gameState.players.length-1; i++) {
                     gameState.players[i].hand = gameState.players[i+1].hand;
@@ -804,8 +846,6 @@
                     voiceActive = true;
                     document.getElementById('voice-status').innerText = "Yoqilgan 🎙️";
                     document.getElementById('voice-status').style.color = "#00ffcc";
-                    
-                    // WebRTC signal ulanishi
                     setupWebRTC();
                 }).catch(err => {
                     alert("Mikrofondan foydalanishga ruxsat berilmadi!");
@@ -875,7 +915,7 @@
             });
         }
 
-        // --- CLOUD MULTIPLAYER (Firebase Realtime) ---
+        // --- CLOUD MULTIPLAYER (Firebase Realtime) & LINK SHARING ---
         function createMultiplayerRoom() {
             roomCode = document.getElementById('create-roomcode-input').value.trim();
             maxPlayers = parseInt(document.getElementById('max-players-select').value);
@@ -906,7 +946,7 @@
                 let room = snapshot.val();
                 if (!room) { 
                     playSound('error');
-                    alert("Bunday xona topilmadi! Avval host xona yaratgani va xona kodi to'g'riligiga ishonch hosil qiling."); 
+                    alert("Bunday xona topilmadi!"); 
                     backToMenu(); 
                     return; 
                 }
@@ -943,6 +983,24 @@
             document.getElementById('active-game').style.display = 'none';
         }
 
+        // Telegram orqali do'stlariga shaxsiy chatiga yuborish tugmasi
+        function shareRoomToFriends() {
+            let currentUrl = window.location.href.split('?')[0];
+            let shareUrl = `${currentUrl}?room=${roomCode}`;
+            let text = `🎮 Meni UNO o'yiniga qo'shiling va ovozli chatda gaplashib o'ynaylik! Xona kodi: ${roomCode}`;
+            
+            if (tg && tg.openTelegramLink) {
+                // Telegram orqali to'g'ridan-to'g'ri do'stiga yuborish oynasini ochadi
+                let telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+                tg.openTelegramLink(telegramShareUrl);
+            } else {
+                // Brauzerda bo'lsa nusxalab oladi
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert("📋 O'yin havolasi nusxalandi! Do'stlaringizga yuboring.");
+                });
+            }
+        }
+
         function listenCloudRoom() {
             dbRef.on('value', snapshot => {
                 let data = snapshot.val();
@@ -976,11 +1034,15 @@
             document.getElementById('max-allowed-count').innerText = maxPlayers;
             let notice = document.getElementById('host-notice');
             let startBtn = document.getElementById('start-host-btn');
+            let shareBtn = document.getElementById('share-link-btn');
+
             if (isHost) {
-                notice.innerText = "Siz xona egasisiz (Host). O'yinchilar yig'ilgach boshlang.";
+                notice.innerText = `Xona kodi: ${roomCode}. Do'stlaringizga link yuboring yoki kodni ayting.`;
+                shareBtn.style.display = 'block';
                 startBtn.style.display = 'block';
             } else {
                 notice.innerText = "Host o'yinni boshlashini kuting...";
+                shareBtn.style.display = 'none';
                 startBtn.style.display = 'none';
             }
         }
@@ -1097,7 +1159,7 @@
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
             } else if (card.value === '+4') {
                 for(let i=0; i<4; i++) {
-                    if (gameState.deck.length === 0) gameState.deck = createDeck();
+                    if (gameState.deck.length === 0) gameState.deck = `createDeck()`;
                     gameState.handsMap[playersList[nextIdx].id].push(gameState.deck.pop());
                 }
                 nextIdx = (nextIdx + gameState.direction + playersList.length) % playersList.length;
