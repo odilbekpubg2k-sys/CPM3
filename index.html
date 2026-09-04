@@ -992,10 +992,12 @@
             document.getElementById('active-game').style.display = 'none';
         }
 
-        // Telegram bot orqali to'g'ridan-to'g'ri do'stiga yuborish
+        // --- TUZATILGAN JOY: Telegram Bot WebApp Link formati ---
         function shareRoomToFriends() {
-            let botUsername = "UNOUZGAMEbot"; 
-            let shareUrl = `https://t.me/${botUsername}/app?startapp=room=${roomCode}`;
+            let botUsername = "UNOUZGAMEbot"; // <-- O'zingizning botingiz username'i bilan almashtiring
+            let webAppShortName = "app";      // <-- BotFather'da yaratilgan WebApp short name
+            
+            let shareUrl = `https://t.me/${botUsername}/${webAppShortName}?startapp=room=${roomCode}`;
             let text = `🎮 Meni UNO o'yiniga qo'shiling va ovozli chatda gaplashib o'ynaylik! Xona kodi: ${roomCode}`;
             
             if (tg && tg.openTelegramLink) {
